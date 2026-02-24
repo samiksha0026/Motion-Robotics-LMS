@@ -1,0 +1,717 @@
+{
+"info": {
+  "name": "Motion Robotics LMS API",
+  "description": "Complete API testing collection for Motion Robotics Learning Management System - Admin is auto-created at startup",
+  "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+},
+"item": [
+  {
+    "name": "1. ADMIN AUTH",
+    "item": [
+      {
+        "name": "Admin Login",
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 200) {",
+                "  var jsonData = pm.response.json();",
+                "  pm.environment.set(\"admin_token\", jsonData.token);",
+                "  pm.environment.set(\"admin_email\", jsonData.adminEmail);",
+                "}"
+              ]
+            }
+          }
+        ],
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"email\": \"admin@motionrobotics.com\",\n  \"password\": \"Admin@123\"\n}"
+          },
+          "url": {
+            "raw": "{{base_url}}/admin/auth/login",
+            "host": [
+              "{{base_url}}"
+            ],
+            "path": [
+              "admin",
+              "auth",
+              "login"
+            ]
+          }
+        }
+      }
+    ]
+  },
+    {
+      "name": "2. SCHOOLS",
+      "item": [
+        {
+          "name": "Create School",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.environment.set(\"school_id\", jsonData.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"schoolName\": \"Delhi Public School\",\n  \"address\": \"123 Main Street, New Delhi\",\n  \"phoneNumber\": \"+91-9876543210\",\n  \"email\": \"info@dps.edu\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/schools",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "schools"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All Schools",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/schools",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "schools"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get School by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/schools/{{school_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "schools",
+                "{{school_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. CLASSES",
+      "item": [
+        {
+          "name": "Create Class 1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.environment.set(\"class_id_1\", jsonData.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"className\": \"Class 6-A\",\n  \"schoolId\": {{school_id}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/classes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "classes"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Class 2",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.environment.set(\"class_id_2\", jsonData.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"className\": \"Class 6-B\",\n  \"schoolId\": {{school_id}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/classes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "classes"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Classes by School",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/classes/school/{{school_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "classes",
+                "school",
+                "{{school_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. TEACHERS",
+      "item": [
+        {
+          "name": "Create Teacher 1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.environment.set(\"teacher_id_1\", jsonData.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"teacher1@school.com\",\n  \"fullName\": \"Mrs. Jane Smith\",\n  \"password\": \"Teacher@123456\",\n  \"phoneNumber\": \"+91-9876543211\",\n  \"schoolId\": {{school_id}},\n  \"classIds\": [{{class_id_1}}, {{class_id_2}}]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/teachers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "teachers"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All Teachers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/teachers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "teachers"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. STUDENTS",
+      "item": [
+        {
+          "name": "Create Student 1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.environment.set(\"student_id_1\", jsonData.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student1@school.com\",\n  \"fullName\": \"Aarav Sharma\",\n  \"password\": \"Student@123456\",\n  \"rollNo\": \"001\",\n  \"classId\": {{class_id_1}},\n  \"schoolId\": {{school_id}},\n  \"programName\": \"Digi-Coding\",\n  \"programLevel\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/students",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "students"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Student 2",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.environment.set(\"student_id_2\", jsonData.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student2@school.com\",\n  \"fullName\": \"Priya Patel\",\n  \"password\": \"Student@123456\",\n  \"rollNo\": \"002\",\n  \"classId\": {{class_id_1}},\n  \"schoolId\": {{school_id}},\n  \"programName\": \"Mech-Tech\",\n  \"programLevel\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/students",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "students"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All Students",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/students",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "students"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. TEACHER AUTH",
+      "item": [
+        {
+          "name": "Teacher Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.environment.set(\"teacher_token\", jsonData.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"teacher1@school.com\",\n  \"password\": \"Teacher@123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/teacher/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teacher",
+                "auth",
+                "login"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. ATTENDANCE",
+      "item": [
+        {
+          "name": "Record Attendance - Student 1 Present",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": {{student_id_1}},\n  \"classId\": {{class_id_1}},\n  \"attendanceDate\": \"2025-01-11T00:00:00Z\",\n  \"isPresent\": true,\n  \"remarks\": \"Present - Active Participation\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/teacher/attendance/record",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teacher",
+                "attendance",
+                "record"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Record Attendance - Student 2 Absent",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": {{student_id_2}},\n  \"classId\": {{class_id_1}},\n  \"attendanceDate\": \"2025-01-11T00:00:00Z\",\n  \"isPresent\": false,\n  \"remarks\": \"Absent - Sick Leave\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/teacher/attendance/record",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teacher",
+                "attendance",
+                "record"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Class Attendance by Date",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{teacher_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/teacher/attendance/class/{{class_id_1}}/date?date=2025-01-11",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teacher",
+                "attendance",
+                "class",
+                "{{class_id_1}}",
+                "date"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2025-01-11"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. STUDENT AUTH",
+      "item": [
+        {
+          "name": "Student Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  var jsonData = pm.response.json();",
+                  "  pm.environment.set(\"student_token\", jsonData.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student1@school.com\",\n  \"password\": \"Student@123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. STUDENT DASHBOARD",
+      "item": [
+        {
+          "name": "View Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/students/dashboard",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "students",
+                "dashboard"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000/api",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "teacher_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "student_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "school_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "class_id_1",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "class_id_2",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "teacher_id_1",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "student_id_1",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "student_id_2",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_email",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
