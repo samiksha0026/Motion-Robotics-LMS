@@ -41,6 +41,7 @@ namespace MotionRobotics.LMS.API.Data
 
         // Auth
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+        public DbSet<UserSession> UserSessions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -301,6 +302,26 @@ namespace MotionRobotics.LMS.API.Data
 
             modelBuilder.Entity<RefreshToken>()
                 .HasIndex(rt => rt.UserId);
+
+            // ============ USER SESSIONS ============
+
+            modelBuilder.Entity<UserSession>()
+                .HasKey(us => us.Id);
+
+            modelBuilder.Entity<UserSession>()
+                .HasOne(us => us.User)
+                .WithMany()
+                .HasForeignKey(us => us.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<UserSession>()
+                .HasIndex(us => us.UserId);
+
+            modelBuilder.Entity<UserSession>()
+                .HasIndex(us => us.TokenHash);
+
+            modelBuilder.Entity<UserSession>()
+                .HasIndex(us => new { us.UserId, us.IsActive });
 
             // ============ INDEXES FOR PERFORMANCE ============
 

@@ -11,6 +11,7 @@
 //   BCrypt.Net-Next
 // ============================================================
 
+using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -28,6 +29,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// ─── MediatR (CQRS) ──────────────────────────────────────────
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Program>());
 
 // ─── 2. Database connection ──────────────────────────────────
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -78,7 +82,10 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-// ─── 6. Admin Module Services ────────────────────────────────
+// ─── 6. Session Service ──────────────────────────────────────
+builder.Services.AddScoped<ISessionService, SessionService>();
+
+// ─── 7. Admin Module Services ────────────────────────────────
 builder.Services.AddScoped<IAdminAuthService, AdminAuthService>();
 builder.Services.AddScoped<ISchoolService, SchoolService>();
 builder.Services.AddScoped<IClassService, ClassService>();
@@ -144,6 +151,10 @@ app.UseStaticFiles(new StaticFileOptions
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// ─── Session Validation (after auth, before controllers) ─────
+app.UseSessionValidation();
+
 app.MapControllers();
 
 // ─── Comprehensive Data Seeding on startup ─────────────────
