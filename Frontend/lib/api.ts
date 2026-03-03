@@ -1,11 +1,22 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5235';
 
+function getAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (typeof window !== 'undefined') {
+    const token = sessionStorage.getItem('jwt');
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    // Send sessionId as header — required for iOS Safari (ITP blocks cross-site cookies)
+    const sessionId = sessionStorage.getItem('sessionId');
+    if (sessionId) headers['X-Session-Id'] = sessionId;
+  }
+  return headers;
+}
+
 export async function fetchFromBackend(endpoint: string) {
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      credentials: 'include',
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) throw new Error('API error');

@@ -64,9 +64,13 @@ export default function LoginPage() {
       if (res.ok && data.token) {
         // Store tokens in sessionStorage (per-tab, cleared on browser close)
         // The httpOnly 'sessionId' cookie is set automatically by the backend
+        // We also store sessionId explicitly for iOS Safari (ITP blocks cross-site cookies)
         sessionStorage.setItem("jwt", data.token);
         if (data.refreshToken) {
           sessionStorage.setItem("refreshToken", data.refreshToken);
+        }
+        if (data.sessionId) {
+          sessionStorage.setItem("sessionId", data.sessionId);
         }
 
         // Get primary role

@@ -46,11 +46,15 @@ namespace MotionRobotics.LMS.API.Middleware
                 return;
             }
 
-            // Extract session ID from cookie
+            // Extract session ID from cookie OR X-Session-Id header
+            // Header fallback is required for iOS Safari (ITP blocks cross-site cookies)
             var sessionIdStr = context.Request.Cookies["sessionId"];
+            if (string.IsNullOrEmpty(sessionIdStr))
+                sessionIdStr = context.Request.Headers["X-Session-Id"].FirstOrDefault();
+
             if (string.IsNullOrEmpty(sessionIdStr) || !Guid.TryParse(sessionIdStr, out var sessionId))
             {
-                _logger.LogWarning("Authenticated request without sessionId cookie from {Path}", path);
+                _logger.LogWarning("Authenticated request without sessionId cookie or header from {Path}", path);
                 context.Response.StatusCode = 401;
                 await context.Response.WriteAsJsonAsync(new { message = "Session not found. Please login again." });
                 return;
