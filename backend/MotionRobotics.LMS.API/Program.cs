@@ -7,13 +7,15 @@
 //   Microsoft.AspNetCore.Identity.EntityFrameworkCore
 //   Microsoft.AspNetCore.Authentication.JwtBearer
 //   Microsoft.IdentityModel.Tokens
-//   Microsoft.EntityFrameworkCore.SqlServer
+//   Npgsql.EntityFrameworkCore.PostgreSQL
 //   BCrypt.Net-Next
 // ============================================================
 
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using MotionRobotics.LMS.API.Data;
@@ -22,8 +24,17 @@ using MotionRobotics.LMS.API.Repositories.Admin;
 using MotionRobotics.LMS.API.Services;
 using MotionRobotics.LMS.API.Services.Admin;
 using System.Text;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ─── Render PORT binding (Render injects PORT env var) ────────
+// Falls back to 8080 for local Docker or other platforms
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+
+// ─── 0. Configuration Validation ─────────────────────────────
+ValidateConfiguration(builder.Configuration, builder.Environment);
 
 // ─── 1. Read config ──────────────────────────────────────────
 builder.Services.AddControllers();
@@ -35,7 +46,7 @@ builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Pr
 
 // ─── 2. Database connection ──────────────────────────────────
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
 );
 
 // ─── 3. ASP.NET Identity setup ───────────────────────────────
@@ -45,19 +56,81 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>()
     .AddDefaultTokenProviders();
 
 // ─── 4. CORS — allows Next.js to call this API ──────────────
+// Development : always http://localhost:3000 (hardcoded, never AllowAnyOrigin)
+// Production  : read Cors:AllowedOrigins from config/env vars — fail fast if empty
+//               Set on Render: Cors__AllowedOrigins__0 = https://your-app.vercel.app
+string[] allowedOrigins;
+
+if (builder.Environment.IsDevelopment())
+{
+    allowedOrigins = ["http://localhost:3000"];
+}
+else
+{
+    allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+        ?? [];
+
+    if (allowedOrigins.Length == 0)
+    {
+        throw new InvalidOperationException(
+            "Cors:AllowedOrigins must contain at least one origin in Production. " +
+            "Set via Cors__AllowedOrigins__0 environment variable on Render.");
+    }
+}
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowNextJs", policy =>
     {
         policy
-            .WithOrigins("http://localhost:3000", "http://localhost:3001")   // your Next.js local dev URL
+            .WithOrigins(allowedOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
     });
 });
 
+// ─── 4.5. Rate Limiting ──────────────────────────────────────
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    // Global rate limit: 100 requests per minute per IP
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.User.Identity?.Name ?? context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 100,
+                Window = TimeSpan.FromMinutes(1)
+            }));
+
+    // Strict rate limit for auth endpoints: 10 requests per minute
+    options.AddFixedWindowLimiter("AuthEndpoints", opts =>
+    {
+        opts.PermitLimit = 10;
+        opts.Window = TimeSpan.FromMinutes(1);
+        opts.AutoReplenishment = true;
+    });
+});
+
 // ─── 5. JWT setup ────────────────────────────────────────────
+// IConfiguration automatically maps Jwt__SecretKey env var → Jwt:SecretKey
+var jwtSecretKey = builder.Configuration["Jwt:SecretKey"];
+
+if (string.IsNullOrEmpty(jwtSecretKey))
+{
+    if (builder.Environment.IsDevelopment())
+    {
+        jwtSecretKey = "DevOnlyKey-ChangeInProduction-Min32Chars!!";
+    }
+    else
+    {
+        throw new InvalidOperationException("Jwt:SecretKey is required in Production. Set via Jwt__SecretKey environment variable.");
+    }
+}
+
 builder.Services.AddAuthentication(options =>
 {
     // Override Identity's default cookie auth → use JWT instead
@@ -75,7 +148,7 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer = builder.Configuration["Jwt:Issuer"],
         ValidAudience = builder.Configuration["Jwt:Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SecretKey"] ?? "")
+            Encoding.UTF8.GetBytes(jwtSecretKey)
         )
     };
 });
@@ -91,7 +164,6 @@ builder.Services.AddScoped<ISchoolService, SchoolService>();
 builder.Services.AddScoped<IClassService, ClassService>();
 builder.Services.AddScoped<IAdminStudentService, AdminStudentService>();
 builder.Services.AddScoped<IAdminTeacherService, AdminTeacherService>();
-builder.Services.AddScoped<IAttendanceService, AttendanceService>();
 builder.Services.AddScoped<TeacherAuthService>();
 builder.Services.AddScoped<ITeacherService, TeacherService>();
 builder.Services.AddScoped<IStudentService, StudentService>();
@@ -108,7 +180,12 @@ builder.Services.AddScoped<ILevelMappingService, LevelMappingService>();
 builder.Services.AddScoped<ISchoolRepository, SchoolRepository>();
 builder.Services.AddScoped<IClassRepository, ClassRepository>();
 builder.Services.AddScoped<ITeacherRepository, TeacherRepository>();
-builder.Services.AddScoped<IAttendanceRepository, AttendanceRepository>();
+
+// ─── 9. Forwarded Headers (reverse proxy support) ────────────
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+});
 
 // ─── Build ───────────────────────────────────────────────────
 var app = builder.Build();
@@ -116,12 +193,43 @@ var app = builder.Build();
 // ─── Global Exception Handler (must be first) ────────────────
 app.UseGlobalExceptionHandler();
 
+// ─── Forwarded Headers (must be early for correct scheme/IP) ─
+app.UseForwardedHeaders();
+
+// ─── HSTS & HTTPS Redirect (production only) ────────────────
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+app.UseHttpsRedirection();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
+// ─── Security Headers ────────────────────────────────────────
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    context.Response.Headers.Append("X-Frame-Options", "DENY");
+    context.Response.Headers.Append("X-XSS-Protection", "1; mode=block");
+    context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+    context.Response.Headers.Append("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
+
+    if (!context.Request.Path.StartsWithSegments("/swagger"))
+    {
+        context.Response.Headers.Append("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';");
+    }
+
+    await next();
+});
+
+// ─── Rate Limiting ───────────────────────────────────────────
+app.UseRateLimiter();
+
+// ─── CORS (after rate limiter, before auth) ──────────────────
 app.UseCors("AllowNextJs");
 
 // Configure static file serving with proper MIME types for PDFs and videos
@@ -164,7 +272,9 @@ using (var scope = app.Services.CreateScope())
     {
         var services = scope.ServiceProvider;
 
-        // Apply any pending migrations
+        // Apply pending migrations on every startup (safe — EF migrations are idempotent)
+        // In Development: migrates local/Neon DB
+        // In Production (Render): migrates Neon DB on first deploy and after schema changes
         var context = services.GetRequiredService<ApplicationDbContext>();
         await context.Database.MigrateAsync();
 
@@ -183,3 +293,61 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
+
+// ─── Configuration Validation ────────────────────────────────
+static void ValidateConfiguration(IConfiguration config, IWebHostEnvironment env)
+{
+    var errors = new List<string>();
+
+    // Check required configuration keys
+    // IConfiguration automatically maps Jwt__SecretKey env var → Jwt:SecretKey
+    var jwtKey = config["Jwt:SecretKey"];
+    if (string.IsNullOrEmpty(jwtKey))
+    {
+        if (!env.IsDevelopment())
+        {
+            errors.Add("JWT:SecretKey is required. Set via JWT__SecretKey environment variable.");
+        }
+        else
+        {
+            // Use a development-only key (not for production!)
+            Console.WriteLine("⚠️  WARNING: Using default JWT key for development. Set JWT__SecretKey in production!");
+        }
+    }
+    else if (jwtKey.Length < 32)
+    {
+        errors.Add("JWT:SecretKey must be at least 32 characters long.");
+    }
+
+    // Validate connection string
+    var connectionString = config.GetConnectionString("DefaultConnection");
+    if (string.IsNullOrEmpty(connectionString))
+    {
+        errors.Add("ConnectionStrings:DefaultConnection is required.");
+    }
+
+    // Validate JWT issuer and audience
+    if (string.IsNullOrEmpty(config["Jwt:Issuer"]))
+        errors.Add("Jwt:Issuer is required.");
+    if (string.IsNullOrEmpty(config["Jwt:Audience"]))
+        errors.Add("Jwt:Audience is required.");
+
+    // In production, require SuperAdmin credentials
+    // IConfiguration maps SuperAdmin__Email → SuperAdmin:Email, SuperAdmin__Password → SuperAdmin:Password
+    if (!env.IsDevelopment())
+    {
+        var superAdminEmail = config["SuperAdmin:Email"];
+        var superAdminPassword = config["SuperAdmin:Password"];
+
+        if (string.IsNullOrEmpty(superAdminEmail) || string.IsNullOrEmpty(superAdminPassword))
+        {
+            throw new InvalidOperationException("SuperAdmin credentials missing in Production environment.");
+        }
+    }
+
+    if (errors.Any())
+    {
+        throw new InvalidOperationException(
+            $"Configuration validation failed:\\n{string.Join("\\n", errors.Select(e => $"  - {e}"))}");
+    }
+}

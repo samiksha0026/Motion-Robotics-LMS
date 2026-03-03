@@ -146,11 +146,7 @@ namespace MotionRobotics.LMS.API.Services.Admin
             var progressRecords = await _context.StudentProgress.Where(p => p.StudentId == id).ToListAsync();
             _context.StudentProgress.RemoveRange(progressRecords);
 
-            // 2. Delete Attendance records
-            var attendanceRecords = await _context.Attendances.Where(a => a.StudentId == id).ToListAsync();
-            _context.Attendances.RemoveRange(attendanceRecords);
-
-            // 3. Delete ExamResults
+            // 2. Delete ExamResults
             var examResults = await _context.ExamResults.Where(e => e.StudentId == id).ToListAsync();
             _context.ExamResults.RemoveRange(examResults);
 

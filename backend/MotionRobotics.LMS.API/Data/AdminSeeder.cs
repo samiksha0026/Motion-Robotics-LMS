@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using MotionRobotics.LMS.API.Models;
 
 namespace MotionRobotics.LMS.API.Data
@@ -18,7 +19,8 @@ namespace MotionRobotics.LMS.API.Data
             await SeedRolesAsync(roleManager);
 
             // 2. Seed SuperAdmin User
-            await SeedSuperAdminAsync(userManager);
+            var configuration = serviceProvider.GetService<IConfiguration>();
+            await SeedSuperAdminAsync(userManager, configuration);
 
             // 3. Seed Robotics Levels
             await SeedRoboticsLevelsAsync(context);
@@ -50,12 +52,26 @@ namespace MotionRobotics.LMS.API.Data
             }
         }
 
-        private static async Task SeedSuperAdminAsync(UserManager<IdentityUser> userManager)
+        private static async Task SeedSuperAdminAsync(UserManager<IdentityUser> userManager, IConfiguration? configuration = null)
         {
             Console.WriteLine("\n2. Seeding SuperAdmin User...");
 
-            string superAdminEmail = "superadmin@motionrobotics.in";
-            string superAdminPassword = "SuperAdmin@123";
+            // IConfiguration maps SuperAdmin__Email → SuperAdmin:Email (works for env vars, user-secrets, appsettings)
+            string superAdminEmail = configuration?["SuperAdmin:Email"] ?? string.Empty;
+            string superAdminPassword = configuration?["SuperAdmin:Password"] ?? string.Empty;
+
+            // Credentials must be explicitly provided — never fall back to defaults
+            if (string.IsNullOrEmpty(superAdminEmail) || string.IsNullOrEmpty(superAdminPassword))
+            {
+                throw new InvalidOperationException(
+                    "SuperAdmin credentials missing. Set SuperAdmin__Email and SuperAdmin__Password environment variables.");
+            }
+
+            if (superAdminPassword.Length < 8)
+            {
+                throw new InvalidOperationException(
+                    "SuperAdmin password is too short. Minimum 8 characters required.");
+            }
 
             var superAdminUser = await userManager.FindByEmailAsync(superAdminEmail);
 
@@ -75,7 +91,7 @@ namespace MotionRobotics.LMS.API.Data
                     await userManager.AddToRoleAsync(superAdminUser, "SuperAdmin");
                     Console.WriteLine("   + SuperAdmin account created successfully!");
                     Console.WriteLine($"     Email: {superAdminEmail}");
-                    Console.WriteLine($"     Password: {superAdminPassword}");
+                    // Password intentionally NOT logged for security
                 }
                 else
                 {

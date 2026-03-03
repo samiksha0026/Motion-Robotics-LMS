@@ -78,6 +78,7 @@ namespace MotionRobotics.LMS.API.DTOs.Admin
         public int StudentId { get; set; }
         public string StudentName { get; set; } = string.Empty;
         public string StudentRollNo { get; set; } = string.Empty;
+        public int SchoolId { get; set; }
         public string SchoolName { get; set; } = string.Empty;
         public string ClassName { get; set; } = string.Empty;
         public string RoboticsLevelName { get; set; } = string.Empty;

@@ -86,11 +86,6 @@ namespace MotionRobotics.LMS.API.Repositories.Admin
                     .ToListAsync();
                 _context.Certificates.RemoveRange(certificates);
 
-                // Delete Attendances
-                var attendances = await _context.Attendances
-                    .Where(a => studentIds.Contains(a.StudentId))
-                    .ToListAsync();
-                _context.Attendances.RemoveRange(attendances);
             }
 
             // 3. Delete Students
@@ -99,7 +94,18 @@ namespace MotionRobotics.LMS.API.Repositories.Admin
                 _context.Students.RemoveRange(school.Students);
             }
 
-            // 4. Delete TeacherClasses
+            // 4. Delete ClassExperimentUnlocks for classes in this school
+            //    (has FK on both ClassId → Classes and UnlockedByTeacherId → Teachers)
+            var classIds = school.Classes.Select(c => c.Id).ToList();
+            if (classIds.Any())
+            {
+                var experimentUnlocks = await _context.ClassExperimentUnlocks
+                    .Where(u => classIds.Contains(u.ClassId))
+                    .ToListAsync();
+                _context.ClassExperimentUnlocks.RemoveRange(experimentUnlocks);
+            }
+
+            // 5. Delete TeacherClasses
             var teacherIds = school.Teachers.Select(t => t.Id).ToList();
             if (teacherIds.Any())
             {
@@ -109,19 +115,19 @@ namespace MotionRobotics.LMS.API.Repositories.Admin
                 _context.TeacherClasses.RemoveRange(teacherClasses);
             }
 
-            // 5. Delete Teachers
+            // 6. Delete Teachers
             if (school.Teachers.Any())
             {
                 _context.Teachers.RemoveRange(school.Teachers);
             }
 
-            // 6. Delete Classes
+            // 7. Delete Classes
             if (school.Classes.Any())
             {
                 _context.Classes.RemoveRange(school.Classes);
             }
 
-            // 7. Delete the School
+            // 8. Delete the School
             _context.Schools.Remove(school);
 
             await _context.SaveChangesAsync();

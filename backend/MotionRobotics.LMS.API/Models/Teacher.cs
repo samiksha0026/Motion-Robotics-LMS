@@ -17,6 +17,5 @@ namespace MotionRobotics.LMS.API.Models
         // Navigation properties
         public School? School { get; set; }
         public ICollection<TeacherClass> TeacherClasses { get; set; } = new List<TeacherClass>();
-        public ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();
     }
 }

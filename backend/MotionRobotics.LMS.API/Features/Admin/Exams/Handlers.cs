@@ -30,7 +30,7 @@ public class GetExamStatisticsHandler : IQueryHandler<GetExamStatisticsQuery, Ex
 {
     private readonly IExamService _s;
     public GetExamStatisticsHandler(IExamService s) => _s = s;
-    public Task<ExamStatisticsDto?> Handle(GetExamStatisticsQuery r, CancellationToken ct) => _s.GetExamStatisticsAsync(r.ExamId);
+    public Task<ExamStatisticsDto?> Handle(GetExamStatisticsQuery r, CancellationToken ct) => _s.GetExamStatisticsAsync(r.ExamId, r.SchoolId);
 }
 
 public class CreateExamHandler : ICommandHandler<CreateExamCommand, ExamDetailDto>

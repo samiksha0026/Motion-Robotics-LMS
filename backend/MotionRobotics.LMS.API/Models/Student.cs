@@ -34,6 +34,5 @@
         public Class? Class { get; set; }
         public AcademicYear? CurrentAcademicYear { get; set; }
         public ICollection<StudentProgress> StudentProgresses { get; set; } = new List<StudentProgress>();
-        public ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();
     }
 }

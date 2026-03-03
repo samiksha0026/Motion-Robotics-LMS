@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using MotionRobotics.LMS.API.Data;
@@ -40,6 +41,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
+    [EnableRateLimiting("AuthEndpoints")]
     public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
     {
         var user = await _userManager.FindByEmailAsync(request.Email)

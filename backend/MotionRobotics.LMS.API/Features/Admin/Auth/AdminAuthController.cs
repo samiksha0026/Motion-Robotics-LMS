@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using MotionRobotics.LMS.API.DTOs.Admin;
 
 namespace MotionRobotics.LMS.API.Features.Admin.Auth;
@@ -15,6 +16,7 @@ public class AdminAuthController : ControllerBase
 
     [HttpPost("login")]
     [AllowAnonymous]
+    [EnableRateLimiting("AuthEndpoints")]
     public async Task<IActionResult> Login([FromBody] AdminLoginRequestDto request)
     {
         if (!ModelState.IsValid)

@@ -21,7 +21,6 @@ namespace MotionRobotics.LMS.API.Data
         public DbSet<Student> Students { get; set; }
         public DbSet<Teacher> Teachers { get; set; }
         public DbSet<TeacherClass> TeacherClasses { get; set; }
-        public DbSet<Attendance> Attendances { get; set; }
 
         // Robotics Level System
         public DbSet<RoboticsLevel> RoboticsLevels { get; set; }
@@ -260,26 +259,6 @@ namespace MotionRobotics.LMS.API.Data
             modelBuilder.Entity<Certificate>()
                 .HasIndex(c => c.CertificateNumber)
                 .IsUnique();
-
-            // ============ ATTENDANCE ============
-
-            modelBuilder.Entity<Attendance>()
-                .HasOne(a => a.Student)
-                .WithMany(s => s.Attendances)
-                .HasForeignKey(a => a.StudentId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<Attendance>()
-                .HasOne(a => a.Class)
-                .WithMany()
-                .HasForeignKey(a => a.ClassId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<Attendance>()
-                .HasOne(a => a.Teacher)
-                .WithMany(t => t.Attendances)
-                .HasForeignKey(a => a.TeacherId)
-                .OnDelete(DeleteBehavior.Restrict);
 
             // ============ STUDENT - ACADEMIC YEAR ============
 

@@ -1,0 +1,12 @@
+**/.git
+**/.vs
+**/.vscode
+**/bin
+**/obj
+**/TestResults
+**/*.Tests
+**/*.user
+**/.env
+**/appsettings.Development.json
+**/secrets.json
+**/Properties/launchSettings.json

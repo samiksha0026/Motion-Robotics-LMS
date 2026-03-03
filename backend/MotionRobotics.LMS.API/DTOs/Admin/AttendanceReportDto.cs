@@ -1,122 +1,10 @@
 namespace MotionRobotics.LMS.API.DTOs.Admin
 {
-    // Bulk attendance recording
-    public class BulkAttendanceCreateDto
-    {
-        public required int ClassId { get; set; }
-        public required DateTime AttendanceDate { get; set; }
-        public required List<StudentAttendanceDto> Attendances { get; set; }
-    }
-
-    public class StudentAttendanceDto
-    {
-        public required int StudentId { get; set; }
-        public required bool IsPresent { get; set; }
-        public string? Remarks { get; set; }
-    }
-
-    public class BulkAttendanceResponseDto
-    {
-        public int ClassId { get; set; }
-        public string ClassName { get; set; } = string.Empty;
-        public DateTime AttendanceDate { get; set; }
-        public int TotalStudents { get; set; }
-        public int PresentCount { get; set; }
-        public int AbsentCount { get; set; }
-        public string RecordedBy { get; set; } = string.Empty;
-        public DateTime RecordedAt { get; set; }
-    }
-
-    // Attendance Summary
-    public class AttendanceSummaryDto
-    {
-        public int TotalClasses { get; set; }
-        public int TotalAttendanceRecords { get; set; }
-        public int TotalPresent { get; set; }
-        public int TotalAbsent { get; set; }
-        public double OverallAttendancePercentage { get; set; }
-        public List<DailyAttendanceSummaryDto> DailyBreakdown { get; set; } = new();
-    }
-
-    public class DailyAttendanceSummaryDto
-    {
-        public DateTime Date { get; set; }
-        public int PresentCount { get; set; }
-        public int AbsentCount { get; set; }
-        public double AttendancePercentage { get; set; }
-    }
-
-    // Student Attendance Report
-    public class StudentAttendanceReportDto
-    {
-        public int StudentId { get; set; }
-        public string StudentName { get; set; } = string.Empty;
-        public string RollNumber { get; set; } = string.Empty;
-        public string ClassName { get; set; } = string.Empty;
-        public string SchoolName { get; set; } = string.Empty;
-        public int TotalDays { get; set; }
-        public int PresentDays { get; set; }
-        public int AbsentDays { get; set; }
-        public double AttendancePercentage { get; set; }
-        public List<AttendanceRecordDto> AttendanceHistory { get; set; } = new();
-    }
-
-    public class AttendanceRecordDto
-    {
-        public DateTime Date { get; set; }
-        public bool IsPresent { get; set; }
-        public string? Remarks { get; set; }
-        public string RecordedBy { get; set; } = string.Empty;
-    }
-
-    // Class Attendance Report
-    public class ClassAttendanceReportDto
-    {
-        public int ClassId { get; set; }
-        public string ClassName { get; set; } = string.Empty;
-        public string SchoolName { get; set; } = string.Empty;
-        public string LevelName { get; set; } = string.Empty;
-        public int TotalStudents { get; set; }
-        public int TotalDays { get; set; }
-        public double AverageAttendancePercentage { get; set; }
-        public List<StudentAttendanceSummaryDto> StudentAttendances { get; set; } = new();
-    }
-
-    public class StudentAttendanceSummaryDto
-    {
-        public int StudentId { get; set; }
-        public string StudentName { get; set; } = string.Empty;
-        public string RollNumber { get; set; } = string.Empty;
-        public int PresentDays { get; set; }
-        public int AbsentDays { get; set; }
-        public double AttendancePercentage { get; set; }
-    }
-
-    // School Attendance Report
-    public class SchoolAttendanceReportDto
-    {
-        public int SchoolId { get; set; }
-        public string SchoolName { get; set; } = string.Empty;
-        public int TotalStudents { get; set; }
-        public int TotalClasses { get; set; }
-        public int TotalAttendanceRecords { get; set; }
-        public double AverageAttendancePercentage { get; set; }
-        public List<ClassAttendanceSummaryDto> ClassAttendances { get; set; } = new();
-    }
-
-    public class ClassAttendanceSummaryDto
-    {
-        public int ClassId { get; set; }
-        public string ClassName { get; set; } = string.Empty;
-        public int TotalStudents { get; set; }
-        public double AttendancePercentage { get; set; }
-    }
-
     // Comprehensive Reports
     public class ComprehensiveStudentReportDto
     {
+        public int SchoolId { get; set; }
         public StudentInfoDto StudentInfo { get; set; } = new();
-        public AttendanceReportSectionDto AttendanceReport { get; set; } = new();
         public ProgressReportSectionDto ProgressReport { get; set; } = new();
         public ExamReportSectionDto ExamReport { get; set; } = new();
         public CertificateReportSectionDto CertificateReport { get; set; } = new();
@@ -128,20 +16,12 @@ namespace MotionRobotics.LMS.API.DTOs.Admin
         public string FullName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string RollNumber { get; set; } = string.Empty;
+        public int SchoolId { get; set; }
         public string SchoolName { get; set; } = string.Empty;
         public string ClassName { get; set; } = string.Empty;
         public string CurrentLevel { get; set; } = string.Empty;
         public DateTime EnrollmentDate { get; set; }
         public bool IsActive { get; set; }
-    }
-
-    public class AttendanceReportSectionDto
-    {
-        public int TotalDays { get; set; }
-        public int PresentDays { get; set; }
-        public int AbsentDays { get; set; }
-        public double AttendancePercentage { get; set; }
-        public string AttendanceGrade { get; set; } = string.Empty;
     }
 
     public class ProgressReportSectionDto
@@ -226,7 +106,6 @@ namespace MotionRobotics.LMS.API.DTOs.Admin
         public int TotalTeachers { get; set; }
         public int TotalClasses { get; set; }
         public int TotalCertificatesIssued { get; set; }
-        public double AverageAttendance { get; set; }
         public double AverageExamScore { get; set; }
     }
 
@@ -237,7 +116,6 @@ namespace MotionRobotics.LMS.API.DTOs.Admin
         public string LevelName { get; set; } = string.Empty;
         public string TeacherName { get; set; } = string.Empty;
         public int StudentCount { get; set; }
-        public double AverageAttendance { get; set; }
         public double AverageProgress { get; set; }
     }
 
@@ -260,7 +138,6 @@ namespace MotionRobotics.LMS.API.DTOs.Admin
         public int NewEnrollments { get; set; }
         public int CertificatesIssued { get; set; }
         public int ExamsConducted { get; set; }
-        public double AverageAttendance { get; set; }
         public double AverageExamScore { get; set; }
         public List<LevelWiseReportDto> LevelWiseData { get; set; } = new();
     }

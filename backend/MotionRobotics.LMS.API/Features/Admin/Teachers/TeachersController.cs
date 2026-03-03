@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MotionRobotics.LMS.API.DTOs.Admin;
+using MotionRobotics.LMS.API.Features.Admin.Classes;
 
 namespace MotionRobotics.LMS.API.Features.Admin.Teachers;
 
@@ -16,23 +17,56 @@ public class TeachersController : ControllerBase
 
     [HttpGet]
     public async Task<IActionResult> GetAllTeachers()
-        => Ok(await _mediator.Send(new GetAllTeachersQuery()));
+    {
+        // Multi-tenant isolation: SchoolAdmin can only see their school's teachers
+        var schoolId = HttpContext.Items["SessionSchoolId"] as int?;
+        var role = HttpContext.Items["SessionRole"] as string;
+
+        if (role == "SchoolAdmin" && schoolId.HasValue)
+            return Ok(await _mediator.Send(new GetTeachersBySchoolQuery(schoolId.Value)));
+
+        // SuperAdmin sees all teachers
+        return Ok(await _mediator.Send(new GetAllTeachersQuery()));
+    }
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetTeacher(int id)
     {
         var result = await _mediator.Send(new GetTeacherByIdQuery(id));
-        return result == null ? NotFound(new { message = "Teacher not found" }) : Ok(result);
+        if (result == null) return NotFound(new { message = "Teacher not found" });
+
+        // Multi-tenant isolation: SchoolAdmin can only access their school's teachers
+        var schoolId = HttpContext.Items["SessionSchoolId"] as int?;
+        var role = HttpContext.Items["SessionRole"] as string;
+        if (role == "SchoolAdmin" && schoolId.HasValue && result.SchoolId != schoolId.Value)
+            return Forbid();
+
+        return Ok(result);
     }
 
     [HttpGet("school/{schoolId:int}")]
     public async Task<IActionResult> GetTeachersBySchool(int schoolId)
-        => Ok(await _mediator.Send(new GetTeachersBySchoolQuery(schoolId)));
+    {
+        // Multi-tenant isolation: SchoolAdmin can only access their own school
+        var sessionSchoolId = HttpContext.Items["SessionSchoolId"] as int?;
+        var role = HttpContext.Items["SessionRole"] as string;
+        if (role == "SchoolAdmin" && sessionSchoolId.HasValue && schoolId != sessionSchoolId.Value)
+            return Forbid();
+
+        return Ok(await _mediator.Send(new GetTeachersBySchoolQuery(schoolId)));
+    }
 
     [HttpPost]
     public async Task<IActionResult> CreateTeacher([FromBody] TeacherCreateDto dto)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        // Multi-tenant isolation: SchoolAdmin can only create teachers in their school
+        var sessionSchoolId = HttpContext.Items["SessionSchoolId"] as int?;
+        var role = HttpContext.Items["SessionRole"] as string;
+        if (role == "SchoolAdmin" && sessionSchoolId.HasValue && dto.SchoolId != sessionSchoolId.Value)
+            return Forbid();
+
         try
         {
             var result = await _mediator.Send(new CreateTeacherCommand(dto));
@@ -46,6 +80,16 @@ public class TeachersController : ControllerBase
     public async Task<IActionResult> UpdateTeacher(int id, [FromBody] TeacherCreateDto dto)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        // Multi-tenant isolation: verify ownership before update
+        var teacher = await _mediator.Send(new GetTeacherByIdQuery(id));
+        if (teacher == null) return NotFound(new { message = "Teacher not found" });
+
+        var sessionSchoolId = HttpContext.Items["SessionSchoolId"] as int?;
+        var role = HttpContext.Items["SessionRole"] as string;
+        if (role == "SchoolAdmin" && sessionSchoolId.HasValue && teacher.SchoolId != sessionSchoolId.Value)
+            return Forbid();
+
         try
         {
             var result = await _mediator.Send(new UpdateTeacherCommand(id, dto));
@@ -57,6 +101,15 @@ public class TeachersController : ControllerBase
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> DeleteTeacher(int id)
     {
+        // Multi-tenant isolation: verify ownership before delete
+        var teacher = await _mediator.Send(new GetTeacherByIdQuery(id));
+        if (teacher == null) return NotFound(new { message = "Teacher not found" });
+
+        var sessionSchoolId = HttpContext.Items["SessionSchoolId"] as int?;
+        var role = HttpContext.Items["SessionRole"] as string;
+        if (role == "SchoolAdmin" && sessionSchoolId.HasValue && teacher.SchoolId != sessionSchoolId.Value)
+            return Forbid();
+
         var result = await _mediator.Send(new DeleteTeacherCommand(id));
         return result ? Ok(new { message = "Teacher deleted successfully" }) : NotFound(new { message = "Teacher not found" });
     }
@@ -64,6 +117,21 @@ public class TeachersController : ControllerBase
     [HttpPost("{teacherId:int}/classes/{classId:int}")]
     public async Task<IActionResult> AssignClass(int teacherId, int classId)
     {
+        // Multi-tenant isolation: verify teacher and class belong to admin's school
+        var sessionSchoolId = HttpContext.Items["SessionSchoolId"] as int?;
+        var role = HttpContext.Items["SessionRole"] as string;
+
+        if (role == "SchoolAdmin" && sessionSchoolId.HasValue)
+        {
+            var teacher = await _mediator.Send(new GetTeacherByIdQuery(teacherId));
+            if (teacher == null) return NotFound(new { message = "Teacher not found" });
+            if (teacher.SchoolId != sessionSchoolId.Value) return Forbid();
+
+            var cls = await _mediator.Send(new GetClassByIdQuery(classId));
+            if (cls == null) return NotFound(new { message = "Class not found" });
+            if (cls.SchoolId != sessionSchoolId.Value) return Forbid();
+        }
+
         try
         {
             await _mediator.Send(new AssignClassToTeacherCommand(teacherId, classId));
@@ -76,6 +144,21 @@ public class TeachersController : ControllerBase
     [HttpDelete("{teacherId:int}/classes/{classId:int}")]
     public async Task<IActionResult> RemoveClass(int teacherId, int classId)
     {
+        // Multi-tenant isolation: verify teacher and class belong to admin's school
+        var sessionSchoolId = HttpContext.Items["SessionSchoolId"] as int?;
+        var role = HttpContext.Items["SessionRole"] as string;
+
+        if (role == "SchoolAdmin" && sessionSchoolId.HasValue)
+        {
+            var teacher = await _mediator.Send(new GetTeacherByIdQuery(teacherId));
+            if (teacher == null) return NotFound(new { message = "Teacher not found" });
+            if (teacher.SchoolId != sessionSchoolId.Value) return Forbid();
+
+            var cls = await _mediator.Send(new GetClassByIdQuery(classId));
+            if (cls == null) return NotFound(new { message = "Class not found" });
+            if (cls.SchoolId != sessionSchoolId.Value) return Forbid();
+        }
+
         try
         {
             await _mediator.Send(new RemoveClassFromTeacherCommand(teacherId, classId));

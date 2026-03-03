@@ -19,9 +19,18 @@ public class AdminExamsController : ControllerBase
         _logger = logger;
     }
 
+    // Helper to get session school context for multi-tenant isolation
+    private (string? Role, int? SchoolId) GetSessionContext()
+    {
+        var role = HttpContext.Items["SessionRole"] as string;
+        var schoolId = HttpContext.Items["SessionSchoolId"] as int?;
+        return (role, schoolId);
+    }
+
     [HttpGet]
     public async Task<ActionResult<ExamListDto>> GetAllExams([FromQuery] int? roboticsLevelId, [FromQuery] bool? isActive)
     {
+        // Exams are global (shared curriculum), all admins can view
         try { return Ok(await _mediator.Send(new GetAllExamsQuery(roboticsLevelId, isActive))); }
         catch (Exception ex) { _logger.LogError(ex, "Error getting exams"); return StatusCode(500, new { message = "An error occurred" }); }
     }
@@ -36,6 +45,15 @@ public class AdminExamsController : ControllerBase
     [HttpGet("{examId:int}/results")]
     public async Task<ActionResult<ExamResultsListDto>> GetExamResults(int examId, [FromQuery] int? schoolId, [FromQuery] int? classId)
     {
+        // Multi-tenant: SchoolAdmin can only see their school's results
+        var (role, sessionSchoolId) = GetSessionContext();
+        if (role == "SchoolAdmin" && sessionSchoolId.HasValue)
+        {
+            if (schoolId.HasValue && schoolId.Value != sessionSchoolId.Value)
+                return Forbid();
+            schoolId = sessionSchoolId; // Force filter to their school
+        }
+
         try { return Ok(await _mediator.Send(new GetExamResultsQuery(examId, schoolId, classId))); }
         catch (Exception ex) { _logger.LogError(ex, "Error getting exam results"); return StatusCode(500, new { message = "An error occurred" }); }
     }
@@ -43,7 +61,13 @@ public class AdminExamsController : ControllerBase
     [HttpGet("{examId:int}/statistics")]
     public async Task<ActionResult<ExamStatisticsDto>> GetExamStatistics(int examId)
     {
-        var stats = await _mediator.Send(new GetExamStatisticsQuery(examId));
+        // Multi-tenant: SchoolAdmin sees school-scoped results; SuperAdmin sees all
+        var (role, sessionSchoolId) = GetSessionContext();
+        int? schoolId = null;
+        if (role == "SchoolAdmin" && sessionSchoolId.HasValue)
+            schoolId = sessionSchoolId;
+
+        var stats = await _mediator.Send(new GetExamStatisticsQuery(examId, schoolId));
         return stats == null ? NotFound(new { message = "Exam not found" }) : Ok(stats);
     }
 

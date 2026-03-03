@@ -31,15 +31,6 @@ namespace MotionRobotics.LMS.API.Services.Admin
             if (student == null)
                 throw new KeyNotFoundException("Student not found");
 
-            // Get attendance data
-            var attendances = await _context.Attendances
-                .Where(a => a.StudentId == studentId)
-                .ToListAsync();
-
-            var presentDays = attendances.Count(a => a.IsPresent);
-            var totalDays = attendances.Count;
-            var attendancePercentage = totalDays > 0 ? Math.Round((double)presentDays / totalDays * 100, 2) : 0;
-
             // Get progress data
             var progress = await _context.StudentProgress
                 .Include(p => p.Experiment)
@@ -102,25 +93,19 @@ namespace MotionRobotics.LMS.API.Services.Admin
 
             return new ComprehensiveStudentReportDto
             {
+                SchoolId = student.SchoolId,
                 StudentInfo = new StudentInfoDto
                 {
                     StudentId = student.Id,
                     FullName = student.FullName,
                     Email = student.Email,
                     RollNumber = student.RollNo,
+                    SchoolId = student.SchoolId,
                     SchoolName = student.School?.SchoolName ?? "Unknown",
                     ClassName = student.Class?.ClassName ?? "Not Assigned",
                     CurrentLevel = currentLevel,
                     EnrollmentDate = student.CreatedAt,
                     IsActive = student.IsActive
-                },
-                AttendanceReport = new AttendanceReportSectionDto
-                {
-                    TotalDays = totalDays,
-                    PresentDays = presentDays,
-                    AbsentDays = totalDays - presentDays,
-                    AttendancePercentage = attendancePercentage,
-                    AttendanceGrade = GetAttendanceGrade(attendancePercentage)
                 },
                 ProgressReport = new ProgressReportSectionDto
                 {
@@ -186,14 +171,6 @@ namespace MotionRobotics.LMS.API.Services.Admin
                 .Where(c => c.SchoolId == schoolId)
                 .CountAsync();
 
-            // Calculate attendance
-            var attendances = await _context.Attendances
-                .Where(a => students.Select(s => s.Id).Contains(a.StudentId))
-                .ToListAsync();
-            var avgAttendance = attendances.Any()
-                ? Math.Round((double)attendances.Count(a => a.IsPresent) / attendances.Count * 100, 2)
-                : 0;
-
             // Calculate average exam score
             var examResults = await _context.ExamResults
                 .Where(r => students.Select(s => s.Id).Contains(r.StudentId))
@@ -211,10 +188,6 @@ namespace MotionRobotics.LMS.API.Services.Admin
             foreach (var cls in classes)
             {
                 var classStudents = students.Where(s => s.ClassId == cls.Id).ToList();
-                var classAttendances = attendances.Where(a => classStudents.Select(s => s.Id).Contains(a.StudentId)).ToList();
-                var classAvgAttendance = classAttendances.Any()
-                    ? Math.Round((double)classAttendances.Count(a => a.IsPresent) / classAttendances.Count * 100, 2)
-                    : 0;
 
                 // Calculate progress
                 var classProgress = await _context.StudentProgress
@@ -235,7 +208,6 @@ namespace MotionRobotics.LMS.API.Services.Admin
                     LevelName = "N/A",  // Level determined by school mapping
                     TeacherName = assignedTeacher,
                     StudentCount = classStudents.Count,
-                    AverageAttendance = classAvgAttendance,
                     AverageProgress = avgProgress
                 });
             }
@@ -262,7 +234,6 @@ namespace MotionRobotics.LMS.API.Services.Admin
                     TotalTeachers = teachers.Count,
                     TotalClasses = classes.Count,
                     TotalCertificatesIssued = certificates,
-                    AverageAttendance = avgAttendance,
                     AverageExamScore = avgExamScore
                 },
                 ClassReports = classSummaries.OrderBy(c => c.ClassName).ToList(),
@@ -298,15 +269,6 @@ namespace MotionRobotics.LMS.API.Services.Admin
                 .Select(r => r.ExamId)
                 .Distinct()
                 .CountAsync();
-
-            // Attendance in period
-            var attendances = await _context.Attendances
-                .Where(a => studentIds.Contains(a.StudentId) &&
-                           a.AttendanceDate >= startDate && a.AttendanceDate <= endDate)
-                .ToListAsync();
-            var avgAttendance = attendances.Any()
-                ? Math.Round((double)attendances.Count(a => a.IsPresent) / attendances.Count * 100, 2)
-                : 0;
 
             // Exam scores in period
             var examResults = await _context.ExamResults
@@ -366,7 +328,6 @@ namespace MotionRobotics.LMS.API.Services.Admin
                 NewEnrollments = newEnrollments,
                 CertificatesIssued = certificatesIssued,
                 ExamsConducted = examsConducted,
-                AverageAttendance = avgAttendance,
                 AverageExamScore = avgExamScore,
                 LevelWiseData = levelWiseData
             };
@@ -384,32 +345,6 @@ namespace MotionRobotics.LMS.API.Services.Admin
 
             var students = await studentsQuery.ToListAsync();
             var studentIds = students.Select(s => s.Id).ToList();
-
-            // Top by attendance
-            var attendanceGroups = await _context.Attendances
-                .Where(a => studentIds.Contains(a.StudentId))
-                .GroupBy(a => a.StudentId)
-                .Select(g => new
-                {
-                    StudentId = g.Key,
-                    Percentage = g.Count() > 0 ? (double)g.Count(a => a.IsPresent) / g.Count() * 100 : 0
-                })
-                .OrderByDescending(a => a.Percentage)
-                .Take(limit)
-                .ToListAsync();
-
-            foreach (var att in attendanceGroups)
-            {
-                var student = students.First(s => s.Id == att.StudentId);
-                performers.Add(new TopPerformerDto
-                {
-                    StudentId = student.Id,
-                    StudentName = student.FullName,
-                    ClassName = student.Class?.ClassName ?? "Unknown",
-                    Score = Math.Round(att.Percentage, 2),
-                    Category = "Attendance"
-                });
-            }
 
             // Top by exam scores
             var examGroups = await _context.ExamResults
@@ -473,19 +408,6 @@ namespace MotionRobotics.LMS.API.Services.Admin
         private async Task<List<TopPerformerDto>> GetSchoolTopPerformersAsync(int schoolId)
         {
             return await GetTopPerformersAsync(schoolId, 5);
-        }
-
-        private static string GetAttendanceGrade(double percentage)
-        {
-            return percentage switch
-            {
-                >= 95 => "Excellent",
-                >= 85 => "Very Good",
-                >= 75 => "Good",
-                >= 60 => "Satisfactory",
-                >= 50 => "Needs Improvement",
-                _ => "Poor"
-            };
         }
 
         private static string GetProgressStatus(int completed, int total)

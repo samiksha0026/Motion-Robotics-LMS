@@ -17,7 +17,7 @@ namespace MotionRobotics.LMS.API.Services
         Task<ExamDetailDto?> UpdateExamAsync(int examId, ExamUpdateDto dto);
         Task<bool> DeleteExamAsync(int examId);
         Task<ExamResultsListDto> GetExamResultsAsync(int examId, int? schoolId = null, int? classId = null);
-        Task<ExamStatisticsDto?> GetExamStatisticsAsync(int examId);
+        Task<ExamStatisticsDto?> GetExamStatisticsAsync(int examId, int? schoolId = null);
 
         // Teacher operations
         Task<TeacherExamResultsListDto> GetTeacherExamResultsAsync(int teacherId, int? classId = null, int? examId = null);
@@ -260,14 +260,24 @@ namespace MotionRobotics.LMS.API.Services
             };
         }
 
-        public async Task<ExamStatisticsDto?> GetExamStatisticsAsync(int examId)
+        public async Task<ExamStatisticsDto?> GetExamStatisticsAsync(int examId, int? schoolId = null)
         {
             var exam = await _context.Exams.FindAsync(examId);
             if (exam == null) return null;
 
-            var results = await _context.ExamResults
-                .Where(r => r.ExamId == examId)
-                .ToListAsync();
+            var query = _context.ExamResults.Where(r => r.ExamId == examId);
+
+            // Multi-tenant: filter results by school when schoolId is provided
+            if (schoolId.HasValue)
+            {
+                var schoolStudentIds = await _context.Students
+                    .Where(s => s.SchoolId == schoolId.Value)
+                    .Select(s => s.Id)
+                    .ToListAsync();
+                query = query.Where(r => schoolStudentIds.Contains(r.StudentId));
+            }
+
+            var results = await query.ToListAsync();
 
             if (results.Count == 0)
             {
