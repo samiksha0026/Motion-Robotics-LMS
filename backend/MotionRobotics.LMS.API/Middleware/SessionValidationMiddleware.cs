@@ -18,6 +18,7 @@ namespace MotionRobotics.LMS.API.Middleware
             "/api/auth/login",
             "/api/auth/refresh",
             "/api/auth/register",
+            "/api/auth/me",       // JWT is sufficient; session cookie unreliable cross-site (iOS Safari ITP)
             "/swagger",
             "/favicon.ico"
         };
