@@ -18,8 +18,6 @@ RUN dotnet publish MotionRobotics.LMS.API/MotionRobotics.LMS.API.csproj \
     --configuration Release \
     --output /app/publish \
     --no-restore \
-    --runtime linux-x64 \
-    --self-contained false
 
 # =============================================================
 # Stage 2: Runtime (final image — no SDK, minimal size)
