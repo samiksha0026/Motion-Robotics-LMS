@@ -363,8 +363,18 @@ namespace MotionRobotics.LMS.API.Seed
         /// </summary>
         private static async Task ResetPasswordIfNeeded(UserManager<IdentityUser> userManager, IdentityUser user, string expectedPassword)
         {
-            // Try to verify current password first
-            var passwordValid = await userManager.CheckPasswordAsync(user, expectedPassword);
+            // Try to verify current password first — wrap in try/catch for corrupted hashes (e.g. BCrypt)
+            bool passwordValid = false;
+            try
+            {
+                passwordValid = await userManager.CheckPasswordAsync(user, expectedPassword);
+            }
+            catch (FormatException)
+            {
+                // Hash is in wrong format (e.g. BCrypt $2a$...) — must reset
+                passwordValid = false;
+            }
+
             if (passwordValid)
                 return; // Password is already correct
 
