@@ -22,37 +22,12 @@ namespace MotionRobotics.LMS.API.Seed
             var userManager = serviceProvider.GetRequiredService<UserManager<IdentityUser>>();
             var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
-            // Check if fully seeded (school exists AND teacher exists AND students exist)
-            var demoSchool = await context.Schools.FirstOrDefaultAsync(s => s.SchoolCode == "DEMO001");
-            var demoTeacher = await context.Teachers.FirstOrDefaultAsync(t => t.Email == "teacher@demo.com");
-            var demoStudent = await context.Students.FirstOrDefaultAsync(s => s.Email == "student@demo.com");
+            Console.WriteLine("   🔧 Setting up demo data...");
 
-            if (demoSchool != null && demoTeacher != null && demoStudent != null)
-            {
-                // Verify passwords work by checking the Identity users exist with correct roles
-                var adminCheck = await userManager.FindByEmailAsync("admin@demo.com");
-                var teacherCheck = await userManager.FindByEmailAsync("teacher@demo.com");
-                var studentCheck = await userManager.FindByEmailAsync("student@demo.com");
+            // ─── CLEAN UP any broken/partial demo data first ─────────────
+            await CleanupDemoDataAsync(context, userManager);
 
-                if (adminCheck != null && teacherCheck != null && studentCheck != null)
-                {
-                    // Reset passwords to known values every startup (in case they got corrupted)
-                    await ResetPasswordIfNeeded(userManager, adminCheck, "Admin@123");
-                    await ResetPasswordIfNeeded(userManager, teacherCheck, "Teacher@123");
-                    await ResetPasswordIfNeeded(userManager, studentCheck, "Student@123");
-
-                    var student2Check = await userManager.FindByEmailAsync("student2@demo.com");
-                    if (student2Check != null)
-                        await ResetPasswordIfNeeded(userManager, student2Check, "Student@123");
-
-                    Console.WriteLine("   ✅ Demo data already seeded. Passwords verified.");
-                    return;
-                }
-            }
-
-            Console.WriteLine("   🔧 Seeding demo data for client presentation...");
-
-            // ─── 1. Ensure roles exist ───────────────────────────────────
+            // ─── 1. Ensure roles exist ────────────────────────────────────
             foreach (var role in new[] { "SchoolAdmin", "Teacher", "Student" })
             {
                 if (!await roleManager.RoleExistsAsync(role))
@@ -355,6 +330,89 @@ namespace MotionRobotics.LMS.API.Seed
             Console.WriteLine("   Student 1:    student@demo.com / Student@123");
             Console.WriteLine("   Student 2:    student2@demo.com / Student@123");
             Console.WriteLine("   ──────────────────────────────────────────");
+        }
+
+        /// <summary>
+        /// Removes all demo-related data so the seeder can recreate it cleanly.
+        /// Uses UserManager and EF Core — no raw SQL, no table-name guessing.
+        /// </summary>
+        private static async Task CleanupDemoDataAsync(ApplicationDbContext context, UserManager<IdentityUser> userManager)
+        {
+            var demoEmails = new[] { "admin@demo.com", "teacher@demo.com", "student@demo.com", "student2@demo.com" };
+
+            // Remove domain records (FK order matters)
+            var demoSchool = await context.Schools.FirstOrDefaultAsync(s => s.SchoolCode == "DEMO001");
+            if (demoSchool != null)
+            {
+                // ClassExperimentUnlocks → need class IDs
+                var classIds = await context.Classes
+                    .Where(c => c.SchoolId == demoSchool.Id)
+                    .Select(c => c.Id)
+                    .ToListAsync();
+
+                if (classIds.Any())
+                {
+                    var unlocks = context.ClassExperimentUnlocks.Where(u => classIds.Contains(u.ClassId));
+                    context.ClassExperimentUnlocks.RemoveRange(unlocks);
+                }
+
+                // StudentProgress
+                var studentIds = await context.Students
+                    .Where(s => s.SchoolId == demoSchool.Id)
+                    .Select(s => s.Id)
+                    .ToListAsync();
+
+                if (studentIds.Any())
+                {
+                    var progress = context.StudentProgress.Where(p => studentIds.Contains(p.StudentId));
+                    context.StudentProgress.RemoveRange(progress);
+                }
+
+                // TeacherClasses
+                var teacherIds = await context.Teachers
+                    .Where(t => t.SchoolId == demoSchool.Id)
+                    .Select(t => t.Id)
+                    .ToListAsync();
+
+                if (teacherIds.Any())
+                {
+                    var teacherClasses = context.TeacherClasses.Where(tc => teacherIds.Contains(tc.TeacherId));
+                    context.TeacherClasses.RemoveRange(teacherClasses);
+                }
+
+                // SchoolLevelMappings
+                var mappings = context.SchoolLevelMappings.Where(m => m.SchoolId == demoSchool.Id);
+                context.SchoolLevelMappings.RemoveRange(mappings);
+
+                // Students
+                var students = context.Students.Where(s => s.SchoolId == demoSchool.Id);
+                context.Students.RemoveRange(students);
+
+                // Teachers
+                var teachers = context.Teachers.Where(t => t.SchoolId == demoSchool.Id);
+                context.Teachers.RemoveRange(teachers);
+
+                // Classes
+                var classes = context.Classes.Where(c => c.SchoolId == demoSchool.Id);
+                context.Classes.RemoveRange(classes);
+
+                // School
+                context.Schools.Remove(demoSchool);
+
+                await context.SaveChangesAsync();
+                Console.WriteLine("   🗑️  Removed existing demo school data");
+            }
+
+            // Remove Identity users for demo emails
+            foreach (var email in demoEmails)
+            {
+                var user = await userManager.FindByEmailAsync(email);
+                if (user != null)
+                {
+                    await userManager.DeleteAsync(user);
+                    Console.WriteLine($"   🗑️  Removed Identity user: {email}");
+                }
+            }
         }
 
         /// <summary>
