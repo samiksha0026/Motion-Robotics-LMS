@@ -167,78 +167,62 @@ namespace MotionRobotics.LMS.API.Seed
         }
 
         /// <summary>
-        /// Nuclear cleanup: removes ALL demo data in correct FK order.
-        /// Includes UserSessions, RefreshTokens, ExamResults, Certificates.
+        /// Nuclear cleanup using RAW SQL for maximum reliability.
+        /// Deletes in strict FK order to avoid constraint violations.
         /// </summary>
         private static async Task NukeAllDemoData(ApplicationDbContext context, UserManager<IdentityUser> userManager)
         {
-            Console.WriteLine("[DEMO] Nuking existing demo data...");
+            Console.WriteLine("[DEMO] Nuking existing demo data via raw SQL...");
 
-            // Get user IDs for demo emails
-            var userIds = new List<string>();
-            foreach (var email in DemoEmails)
-            {
-                var u = await userManager.FindByEmailAsync(email);
-                if (u != null) userIds.Add(u.Id);
-            }
+            // Use raw SQL — bypasses all EF Core tracking issues and handles FK order perfectly
+            var emailList = "'" + string.Join("','", DemoEmails) + "'";
 
-            // Delete UserSessions for demo users
-            if (userIds.Any())
-            {
-                var sessions = await context.UserSessions.Where(s => userIds.Contains(s.UserId)).ToListAsync();
-                if (sessions.Any()) { context.UserSessions.RemoveRange(sessions); Console.WriteLine($"[DEMO] Removed {sessions.Count} user sessions"); }
+            // 1. Delete auth-related tables referencing AspNetUsers
+            var sql1 = $@"
+                DELETE FROM ""UserSessions""  WHERE ""UserId"" IN (SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""NormalizedEmail"" IN ({string.Join(",", DemoEmails.Select(e => $"'{e.ToUpperInvariant()}'"))}));
+                DELETE FROM ""RefreshTokens"" WHERE ""UserId"" IN (SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""NormalizedEmail"" IN ({string.Join(",", DemoEmails.Select(e => $"'{e.ToUpperInvariant()}'"))}));
+            ";
+            await context.Database.ExecuteSqlRawAsync(sql1);
+            Console.WriteLine("[DEMO] Auth tables cleaned");
 
-                var tokens = await context.RefreshTokens.Where(t => userIds.Contains(t.UserId)).ToListAsync();
-                if (tokens.Any()) { context.RefreshTokens.RemoveRange(tokens); Console.WriteLine($"[DEMO] Removed {tokens.Count} refresh tokens"); }
-            }
+            // 2. Delete school-related data (by school code)
+            var sql2 = @"
+                -- ExamResults, Certificates, StudentProgress for students in demo school
+                DELETE FROM ""ExamResults""     WHERE ""StudentId"" IN (SELECT ""Id"" FROM ""Students"" WHERE ""SchoolId"" IN (SELECT ""Id"" FROM ""Schools"" WHERE ""SchoolCode"" = 'DEMO001'));
+                DELETE FROM ""Certificates""    WHERE ""StudentId"" IN (SELECT ""Id"" FROM ""Students"" WHERE ""SchoolId"" IN (SELECT ""Id"" FROM ""Schools"" WHERE ""SchoolCode"" = 'DEMO001'));
+                DELETE FROM ""StudentProgress"" WHERE ""StudentId"" IN (SELECT ""Id"" FROM ""Students"" WHERE ""SchoolId"" IN (SELECT ""Id"" FROM ""Schools"" WHERE ""SchoolCode"" = 'DEMO001'));
 
-            // Delete school-related data
-            var demoSchool = await context.Schools.FirstOrDefaultAsync(s => s.SchoolCode == "DEMO001");
-            if (demoSchool != null)
-            {
-                var classIds = await context.Classes.Where(c => c.SchoolId == demoSchool.Id).Select(c => c.Id).ToListAsync();
-                var studentIds = await context.Students.Where(s => s.SchoolId == demoSchool.Id).Select(s => s.Id).ToListAsync();
-                var teacherIds = await context.Teachers.Where(t => t.SchoolId == demoSchool.Id).Select(t => t.Id).ToListAsync();
+                -- ClassExperimentUnlocks for classes in demo school
+                DELETE FROM ""ClassExperimentUnlocks"" WHERE ""ClassId"" IN (SELECT ""Id"" FROM ""Classes"" WHERE ""SchoolId"" IN (SELECT ""Id"" FROM ""Schools"" WHERE ""SchoolCode"" = 'DEMO001'));
 
-                // ExamResults & Certificates for demo students
-                if (studentIds.Any())
-                {
-                    context.ExamResults.RemoveRange(context.ExamResults.Where(e => studentIds.Contains(e.StudentId)));
-                    context.Certificates.RemoveRange(context.Certificates.Where(c => studentIds.Contains(c.StudentId)));
-                    context.StudentProgress.RemoveRange(context.StudentProgress.Where(p => studentIds.Contains(p.StudentId)));
-                }
+                -- TeacherClasses for teachers in demo school
+                DELETE FROM ""TeacherClasses"" WHERE ""TeacherId"" IN (SELECT ""Id"" FROM ""Teachers"" WHERE ""SchoolId"" IN (SELECT ""Id"" FROM ""Schools"" WHERE ""SchoolCode"" = 'DEMO001'));
 
-                // ClassExperimentUnlocks
-                if (classIds.Any())
-                    context.ClassExperimentUnlocks.RemoveRange(context.ClassExperimentUnlocks.Where(u => classIds.Contains(u.ClassId)));
+                -- SchoolLevelMappings
+                DELETE FROM ""SchoolLevelMappings"" WHERE ""SchoolId"" IN (SELECT ""Id"" FROM ""Schools"" WHERE ""SchoolCode"" = 'DEMO001');
 
-                // TeacherClasses
-                if (teacherIds.Any())
-                    context.TeacherClasses.RemoveRange(context.TeacherClasses.Where(tc => teacherIds.Contains(tc.TeacherId)));
+                -- Students, Teachers, Classes
+                DELETE FROM ""Students"" WHERE ""SchoolId"" IN (SELECT ""Id"" FROM ""Schools"" WHERE ""SchoolCode"" = 'DEMO001');
+                DELETE FROM ""Teachers"" WHERE ""SchoolId"" IN (SELECT ""Id"" FROM ""Schools"" WHERE ""SchoolCode"" = 'DEMO001');
+                DELETE FROM ""Classes""  WHERE ""SchoolId"" IN (SELECT ""Id"" FROM ""Schools"" WHERE ""SchoolCode"" = 'DEMO001');
 
-                // SchoolLevelMappings
-                context.SchoolLevelMappings.RemoveRange(context.SchoolLevelMappings.Where(m => m.SchoolId == demoSchool.Id));
+                -- School itself
+                DELETE FROM ""Schools"" WHERE ""SchoolCode"" = 'DEMO001';
+            ";
+            await context.Database.ExecuteSqlRawAsync(sql2);
+            Console.WriteLine("[DEMO] School data cleaned");
 
-                // Students, Teachers, Classes, School
-                context.Students.RemoveRange(context.Students.Where(s => s.SchoolId == demoSchool.Id));
-                context.Teachers.RemoveRange(context.Teachers.Where(t => t.SchoolId == demoSchool.Id));
-                context.Classes.RemoveRange(context.Classes.Where(c => c.SchoolId == demoSchool.Id));
-                context.Schools.Remove(demoSchool);
-
-                await context.SaveChangesAsync();
-                Console.WriteLine("[DEMO] School data nuked");
-            }
-
-            // Delete Identity users LAST (after all FK refs are gone)
-            foreach (var email in DemoEmails)
-            {
-                var user = await userManager.FindByEmailAsync(email);
-                if (user != null)
-                {
-                    var result = await userManager.DeleteAsync(user);
-                    Console.WriteLine($"[DEMO] Delete user {email}: {(result.Succeeded ? "OK" : string.Join(",", result.Errors.Select(e => e.Description)))}");
-                }
-            }
+            // 3. Delete Identity user data (roles, claims, logins, tokens, then user)
+            var normalizedEmails = string.Join(",", DemoEmails.Select(e => $"'{e.ToUpperInvariant()}'"));
+            var sql3 = $@"
+                DELETE FROM ""AspNetUserRoles""  WHERE ""UserId"" IN (SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""NormalizedEmail"" IN ({normalizedEmails}));
+                DELETE FROM ""AspNetUserClaims"" WHERE ""UserId"" IN (SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""NormalizedEmail"" IN ({normalizedEmails}));
+                DELETE FROM ""AspNetUserLogins"" WHERE ""UserId"" IN (SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""NormalizedEmail"" IN ({normalizedEmails}));
+                DELETE FROM ""AspNetUserTokens"" WHERE ""UserId"" IN (SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""NormalizedEmail"" IN ({normalizedEmails}));
+                DELETE FROM ""AspNetUsers""      WHERE ""NormalizedEmail"" IN ({normalizedEmails});
+            ";
+            await context.Database.ExecuteSqlRawAsync(sql3);
+            Console.WriteLine("[DEMO] Identity users deleted");
 
             Console.WriteLine("[DEMO] Nuke complete");
         }
