@@ -58,6 +58,12 @@ export function getRefreshToken(): string | null {
   return storage.getItem(REFRESH_TOKEN_KEY);
 }
 
+export function getSessionId(): string | null {
+  const storage = getStorage();
+  if (!storage) return null;
+  return storage.getItem('sessionId');
+}
+
 export function getTokenExpiry(): Date | null {
   const storage = getStorage();
   if (!storage) return null;
@@ -132,6 +138,7 @@ export function clearSession() {
   storage.removeItem("assignedClass");
   storage.removeItem("assignedProgram");
   storage.removeItem("assignedLevel");
+  storage.removeItem("sessionId");
 }
 
 export function logout(redirect: string = '/login') {
@@ -140,15 +147,17 @@ export function logout(redirect: string = '/login') {
   const token = getToken();
   
   if (refreshToken && token) {
+    const sessionId = getSessionId();
     fetch(`${API_BASE_URL}/api/auth/logout`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${token}`,
+        ...(sessionId ? { 'X-Session-Id': sessionId } : {})
       },
-      credentials: 'include', // Send httpOnly session cookie
+      credentials: 'include',
       body: JSON.stringify({ refreshToken })
-    }).catch(() => {}); // Ignore errors
+    }).catch(() => {});
   }
   
   clearSession();
@@ -174,13 +183,16 @@ export async function validateSession(): Promise<{
   if (!token) return null;
 
   try {
+    const sessionId = getSessionId();
     const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        // iOS Safari (ITP) blocks cross-site cookies — send sessionId as header fallback
+        ...(sessionId ? { 'X-Session-Id': sessionId } : {})
       },
-      credentials: 'include' // Send httpOnly session cookie
+      credentials: 'include'
     });
 
     if (!res.ok) return null;
@@ -280,6 +292,9 @@ export async function fetchWithAuth(input: RequestInfo, init?: RequestInit) {
   
   const headers = { ...(init?.headers ?? {}), "Content-Type": "application/json" } as Record<string,string>;
   headers["Authorization"] = `Bearer ${token}`;
+  // iOS Safari (ITP) blocks cross-site cookies — send sessionId as header fallback
+  const sessionId = getSessionId();
+  if (sessionId) headers["X-Session-Id"] = sessionId;
   
   // Build full URL if input is a relative path
   const url = typeof input === 'string' && input.startsWith('/') 
@@ -296,6 +311,8 @@ export async function fetchWithAuth(input: RequestInfo, init?: RequestInit) {
       // Retry the original request with new token
       const newToken = getToken();
       headers["Authorization"] = `Bearer ${newToken}`;
+      const newSessionId = getSessionId();
+      if (newSessionId) headers["X-Session-Id"] = newSessionId;
       res = await fetch(url, { ...init, headers, credentials: 'include' });
     } else {
       // Refresh failed - clear session and redirect to login
