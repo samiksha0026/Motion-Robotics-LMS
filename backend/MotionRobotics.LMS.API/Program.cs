@@ -369,9 +369,9 @@ static string ConvertPostgresUriToNpgsql(string connectionString)
     var uri = new Uri(connectionString);
     var userInfo = uri.UserInfo.Split(':', 2);
     var username = Uri.UnescapeDataString(userInfo[0]);
-    var password  = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "";
-    var host     = uri.Host;
-    var port     = uri.IsDefaultPort ? 5432 : uri.Port;
+    var password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "";
+    var host = uri.Host;
+    var port = uri.IsDefaultPort ? 5432 : uri.Port;
     var database = uri.AbsolutePath.TrimStart('/');
 
     // Parse query string for sslmode
