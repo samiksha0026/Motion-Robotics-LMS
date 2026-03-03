@@ -200,6 +200,9 @@ app.UseGlobalExceptionHandler();
 // ─── Forwarded Headers (must be early for correct scheme/IP) ─
 app.UseForwardedHeaders();
 
+// ─── CORS (must be before HTTPS redirect so OPTIONS preflights aren't redirected) ──
+app.UseCors("AllowNextJs");
+
 // ─── HSTS & HTTPS Redirect (production only) ────────────────
 if (!app.Environment.IsDevelopment())
 {
@@ -232,9 +235,6 @@ app.Use(async (context, next) =>
 
 // ─── Rate Limiting ───────────────────────────────────────────
 app.UseRateLimiter();
-
-// ─── CORS (after rate limiter, before auth) ──────────────────
-app.UseCors("AllowNextJs");
 
 // Configure static file serving with proper MIME types for PDFs and videos
 app.UseStaticFiles(new StaticFileOptions
