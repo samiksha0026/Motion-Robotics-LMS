@@ -21,6 +21,7 @@ using Microsoft.IdentityModel.Tokens;
 using MotionRobotics.LMS.API.Data;
 using MotionRobotics.LMS.API.Middleware;
 using MotionRobotics.LMS.API.Repositories.Admin;
+using MotionRobotics.LMS.API.Seed;
 using MotionRobotics.LMS.API.Services;
 using MotionRobotics.LMS.API.Services.Admin;
 using System.Text;
@@ -287,6 +288,9 @@ using (var scope = app.Services.CreateScope())
 
         // Seed other data (books, experiments, exams, etc.)
         await DataSeeder.SeedDatabaseAsync(services);
+
+        // Seed demo data for client presentation
+        await DemoDataSeeder.SeedAsync(services);
 
         Console.WriteLine("✅ Database seeding completed!");
     }

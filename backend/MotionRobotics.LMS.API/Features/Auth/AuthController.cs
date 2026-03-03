@@ -50,7 +50,7 @@ public class AuthController : ControllerBase
         if (user == null)
             return Unauthorized(new { message = "Invalid credentials" });
 
-        SignInResult result;
+        Microsoft.AspNetCore.Identity.SignInResult result;
         try
         {
             result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, false);
