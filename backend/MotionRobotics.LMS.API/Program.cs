@@ -45,8 +45,12 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Program>());
 
 // ─── 2. Database connection ──────────────────────────────────
+// Supports both Npgsql key-value format AND postgresql:// URI format (Render default)
+var rawConnectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "";
+var connectionString = ConvertPostgresUriToNpgsql(rawConnectionString);
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
+    options.UseNpgsql(connectionString)
 );
 
 // ─── 3. ASP.NET Identity setup ───────────────────────────────
@@ -350,4 +354,35 @@ static void ValidateConfiguration(IConfiguration config, IWebHostEnvironment env
         throw new InvalidOperationException(
             $"Configuration validation failed:\\n{string.Join("\\n", errors.Select(e => $"  - {e}"))}");
     }
+}
+
+// Converts postgresql://user:pass@host/db?sslmode=require  →  Npgsql key-value format
+// Returns the input unchanged if it is already in key-value format
+static string ConvertPostgresUriToNpgsql(string connectionString)
+{
+    if (string.IsNullOrWhiteSpace(connectionString))
+        return connectionString;
+
+    if (!connectionString.StartsWith("postgresql://") && !connectionString.StartsWith("postgres://"))
+        return connectionString; // already key-value format
+
+    var uri = new Uri(connectionString);
+    var userInfo = uri.UserInfo.Split(':', 2);
+    var username = Uri.UnescapeDataString(userInfo[0]);
+    var password  = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "";
+    var host     = uri.Host;
+    var port     = uri.IsDefaultPort ? 5432 : uri.Port;
+    var database = uri.AbsolutePath.TrimStart('/');
+
+    // Parse query string for sslmode
+    var query = uri.Query.TrimStart('?');
+    var sslMode = "Require";
+    foreach (var param in query.Split('&'))
+    {
+        var kv = param.Split('=', 2);
+        if (kv[0].Equals("sslmode", StringComparison.OrdinalIgnoreCase) && kv.Length > 1)
+            sslMode = kv[1] switch { "require" => "Require", "disable" => "Disable", _ => "Require" };
+    }
+
+    return $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode={sslMode};Trust Server Certificate=true";
 }
