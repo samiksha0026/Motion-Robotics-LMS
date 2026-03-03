@@ -126,6 +126,12 @@ namespace MotionRobotics.LMS.API.Middleware
                     ErrorCodes.OperationNotAllowed,
                     "The operation was cancelled."),
 
+                // Format errors (e.g. corrupted data)
+                FormatException ex => (
+                    (int)HttpStatusCode.BadRequest,
+                    ErrorCodes.InvalidInput,
+                    "Invalid data format."),
+
                 // Default - Internal Server Error
                 _ => (
                     (int)HttpStatusCode.InternalServerError,

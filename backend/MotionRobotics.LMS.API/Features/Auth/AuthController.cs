@@ -50,7 +50,17 @@ public class AuthController : ControllerBase
         if (user == null)
             return Unauthorized(new { message = "Invalid credentials" });
 
-        var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, false);
+        SignInResult result;
+        try
+        {
+            result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, false);
+        }
+        catch (FormatException)
+        {
+            // Corrupted hash (e.g. wrong algorithm like BCrypt in DB) — treat as bad credentials
+            return Unauthorized(new { message = "Invalid credentials" });
+        }
+
         if (!result.Succeeded)
             return Unauthorized(new { message = "Invalid credentials" });
 
