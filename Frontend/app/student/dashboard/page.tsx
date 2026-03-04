@@ -86,6 +86,13 @@ export default function StudentDashboard() {
     return token;
   }
 
+  function getAuthHeaders(token: string): Record<string, string> {
+    const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+    const sessionId = sessionStorage.getItem("sessionId");
+    if (sessionId) headers["X-Session-Id"] = sessionId;
+    return headers;
+  }
+
   const fetchStudentData = async () => {
     try {
       setLoading(true);
@@ -96,8 +103,9 @@ export default function StudentDashboard() {
 
       // Fetch dashboard data
       const dashboardRes = await fetch(`${API_BASE_URL}/api/student/dashboard`, {
+        credentials: "include",
         headers: {
-          Authorization: `Bearer ${token}`,
+          ...getAuthHeaders(token),
           "Content-Type": "application/json"
         }
       });
@@ -125,8 +133,9 @@ export default function StudentDashboard() {
 
       // Fetch experiments data
       const experimentsRes = await fetch(`${API_BASE_URL}/api/student/experiments`, {
+        credentials: "include",
         headers: {
-          Authorization: `Bearer ${token}`,
+          ...getAuthHeaders(token),
           "Content-Type": "application/json"
         }
       });

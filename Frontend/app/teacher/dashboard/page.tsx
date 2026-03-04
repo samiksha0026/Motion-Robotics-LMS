@@ -88,6 +88,13 @@ export default function TeacherDashboard() {
     return token;
   }
 
+  function getAuthHeaders(token: string): Record<string, string> {
+    const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+    const sessionId = sessionStorage.getItem("sessionId");
+    if (sessionId) headers["X-Session-Id"] = sessionId;
+    return headers;
+  }
+
   async function loadDashboard() {
     try {
       setIsLoading(true);
@@ -96,7 +103,8 @@ export default function TeacherDashboard() {
       if (!token) return;
 
       const res = await fetch(`${API_BASE_URL}/api/teacher/dashboard`, {
-        headers: { Authorization: `Bearer ${token}` }
+        credentials: "include",
+        headers: getAuthHeaders(token)
       });
 
       if (res.status === 401) {
@@ -129,8 +137,9 @@ export default function TeacherDashboard() {
 
       const res = await fetch(`${API_BASE_URL}/api/teacher/approvals/${progressId}`, {
         method: "POST",
+        credentials: "include",
         headers: {
-          Authorization: `Bearer ${token}`,
+          ...getAuthHeaders(token),
           "Content-Type": "application/json"
         },
         body: JSON.stringify({ approve, teacherRemarks: remarks })
