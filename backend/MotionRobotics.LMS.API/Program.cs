@@ -245,8 +245,11 @@ app.UseStaticFiles(new StaticFileOptions
         // Set proper headers for PDF files to enable viewing in browser
         if (ctx.File.Name.EndsWith(".pdf"))
         {
-            ctx.Context.Response.Headers.Append("Content-Type", "application/pdf");
-            ctx.Context.Response.Headers.Append("Content-Disposition", "inline");
+            ctx.Context.Response.Headers["Content-Type"] = "application/pdf";
+            ctx.Context.Response.Headers["Content-Disposition"] = "inline";
+            // Remove X-Frame-Options so the PDF can be embedded cross-origin in the viewer
+            ctx.Context.Response.Headers.Remove("X-Frame-Options");
+            ctx.Context.Response.Headers.Remove("Content-Security-Policy");
         }
         // Set proper headers for video files
         else if (ctx.File.Name.EndsWith(".mp4"))

@@ -17,6 +17,9 @@ RUN dotnet publish MotionRobotics.LMS.API/MotionRobotics.LMS.API.csproj \
     -o /app/publish \
     --no-restore
 
+# Copy outer wwwroot (syllabus PDFs, etc.) into publish output
+COPY wwwroot/ /app/publish/wwwroot/
+
 # =========================
 # RUNTIME STAGE
 # =========================
