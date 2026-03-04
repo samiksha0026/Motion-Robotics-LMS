@@ -135,7 +135,7 @@ export default function TeacherDashboard() {
       const token = await getToken();
       if (!token) return;
 
-      const res = await fetch(`${API_BASE_URL}/api/teacher/approvals/${progressId}`, {
+      const res = await fetch(`${API_BASE_URL}/api/teacher/approvals/${progressId}/approve`, {
         method: "POST",
         credentials: "include",
         headers: {
