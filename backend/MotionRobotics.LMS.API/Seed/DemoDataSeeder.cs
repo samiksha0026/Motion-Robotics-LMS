@@ -17,6 +17,21 @@ namespace MotionRobotics.LMS.API.Seed
 
             Console.WriteLine("[DEMO] === Starting Demo Data Seeder ===");
 
+            // ─── QUICK CHECK: skip if all 4 users already have valid PBKDF2 hashes ─
+            // This prevents the nuke-then-recreate cycle on every server restart.
+            // BCrypt hashes start with "$2a$" or "$2b$"; PBKDF2 v3 starts with "AQAAAA".
+            var earlyCheck = await Task.WhenAll(DemoEmails.Select(e => userManager.FindByEmailAsync(e)));
+            bool allValid = earlyCheck.All(u =>
+                u != null &&
+                u.PasswordHash != null &&
+                !u.PasswordHash.StartsWith("$2"));   // not BCrypt
+            if (allValid)
+            {
+                Console.WriteLine("[DEMO] All demo users already exist with valid hashes — skipping seeder");
+                return;
+            }
+            Console.WriteLine("[DEMO] One or more demo users missing or have invalid hash — running full seed");
+
             // ─── STEP 0: NUKE all existing demo data ─────────────────────
             await NukeAllDemoData(context);
 

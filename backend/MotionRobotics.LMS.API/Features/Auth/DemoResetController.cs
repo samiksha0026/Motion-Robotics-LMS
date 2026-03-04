@@ -58,6 +58,7 @@ public class DemoResetController : ControllerBase
     /// <summary>
     /// POST /api/demo/reset?secret=MOTIONROBOTICS_DEMO_2025
     /// Wipes all demo accounts and re-seeds them from scratch.
+    /// Bypasses the seeder's early-exit guard by deleting users first.
     /// </summary>
     [HttpPost("reset")]
     public async Task<IActionResult> Reset([FromQuery] string? secret)
@@ -65,17 +66,25 @@ public class DemoResetController : ControllerBase
         if (secret != Secret)
             return Unauthorized(new { message = "Invalid secret" });
 
-        // Capture console output by running the seeder and observing effects
         var before = await GetUserSummary();
 
-        // Run the seeder using the current DI scope
+        // Force-delete demo users so the seeder's early-exit guard doesn't skip
+        var emailsToDelete = new[] { "admin@demo.com", "teacher@demo.com", "student@demo.com", "student2@demo.com" };
+        foreach (var email in emailsToDelete)
+        {
+            var existing = await _userManager.FindByEmailAsync(email);
+            if (existing != null)
+                await _userManager.DeleteAsync(existing);
+        }
+
+        // Now run the seeder (no users exist, so it will recreate them)
         var scope = HttpContext.RequestServices;
         await DemoDataSeeder.SeedAsync(scope);
 
         var after = await GetUserSummary();
         return Ok(new
         {
-            message = "Seeder completed",
+            message = "Reset completed",
             before,
             after
         });
