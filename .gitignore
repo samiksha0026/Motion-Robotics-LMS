@@ -58,4 +58,5 @@ backend/wwwroot/
 **/wwwroot/videos/
 
 # Large PDF syllabus files (upload separately or use Git LFS)
-**/wwwroot/syllabus/
+# Allow in API wwwroot only (gets included in dotnet publish)
+!backend/MotionRobotics.LMS.API/wwwroot/syllabus/
