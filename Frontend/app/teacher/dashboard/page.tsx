@@ -71,6 +71,7 @@ export default function TeacherDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [isApproving, setIsApproving] = useState<number | null>(null);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [selectedApproval, setSelectedApproval] = useState<PendingApproval | null>(null);
   const [rejectReason, setRejectReason] = useState("");
@@ -147,7 +148,10 @@ export default function TeacherDashboard() {
 
       if (!res.ok) {
         const text = await res.text();
-        throw new Error(text || "Failed to process approval");
+        // Parse JSON error body into a readable message
+        let msg = "Failed to process approval";
+        try { msg = JSON.parse(text)?.message || msg; } catch { msg = text || msg; }
+        throw new Error(msg);
       }
 
       setPendingApprovals(prev => prev.filter(p => p.progressId !== progressId));
@@ -162,6 +166,8 @@ export default function TeacherDashboard() {
       setShowApprovalModal(false);
       setSelectedApproval(null);
       setRejectReason("");
+      setSuccessMessage(approve ? "✅ Experiment approved successfully!" : "❌ Submission rejected.");
+      setTimeout(() => setSuccessMessage(""), 3000);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Failed to process";
       setError(errorMessage);
@@ -275,6 +281,17 @@ export default function TeacherDashboard() {
             <p className="text-red-700 flex-1">{error}</p>
             <button onClick={() => setError("")}>
               <X className="w-5 h-5 text-red-400 hover:text-red-600" />
+            </button>
+          </div>
+        )}
+
+        {/* Success Alert */}
+        {successMessage && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3">
+            <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+            <p className="text-green-700 flex-1">{successMessage}</p>
+            <button onClick={() => setSuccessMessage("")}>
+              <X className="w-5 h-5 text-green-400 hover:text-green-600" />
             </button>
           </div>
         )}
