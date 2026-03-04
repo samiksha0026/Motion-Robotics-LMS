@@ -105,9 +105,12 @@ function ExperimentsContent() {
         throw new Error('No authentication token found. Please login again.');
       }
 
+      const sessionId = typeof window !== 'undefined' ? sessionStorage.getItem('sessionId') : null;
       const response = await fetch(`${API_BASE_URL}/api/student/experiments`, {
+        credentials: 'include',
         headers: {
           'Authorization': `Bearer ${token}`,
+          ...(sessionId ? { 'X-Session-Id': sessionId } : {}),
           'Content-Type': 'application/json'
         }
       });
@@ -142,10 +145,13 @@ function ExperimentsContent() {
       setSubmitting(true);
       const token = sessionStorage.getItem('jwt');
       
+      const sessionId = typeof window !== 'undefined' ? sessionStorage.getItem('sessionId') : null;
       const response = await fetch(`${API_BASE_URL}/api/student/experiments/${experimentId}/submit`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Authorization': `Bearer ${token}`,
+          ...(sessionId ? { 'X-Session-Id': sessionId } : {}),
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ submissionNotes })

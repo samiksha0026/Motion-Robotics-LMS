@@ -46,9 +46,12 @@ export default function CertificatePage() {
         return;
       }
 
+      const sessionId = typeof window !== "undefined" ? sessionStorage.getItem("sessionId") : null;
       const response = await fetch(`${API_BASE_URL}/api/student/certificates`, {
+        credentials: "include",
         headers: {
           Authorization: `Bearer ${token}`,
+          ...(sessionId ? { "X-Session-Id": sessionId } : {}),
           "Content-Type": "application/json",
         },
       });

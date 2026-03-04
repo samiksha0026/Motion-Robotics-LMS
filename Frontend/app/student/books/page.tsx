@@ -42,9 +42,12 @@ export default function DigitalBookPage() {
         }
 
         // Fetch student's experiments/level data which includes syllabusUrl
+        const sessionId = sessionStorage.getItem('sessionId');
         const response = await fetch(`${API_BASE_URL}/api/student/experiments`, {
+          credentials: 'include',
           headers: {
             'Authorization': `Bearer ${token}`,
+            ...(sessionId ? { 'X-Session-Id': sessionId } : {}),
             'Content-Type': 'application/json'
           }
         });
