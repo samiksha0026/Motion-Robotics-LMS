@@ -46,3 +46,21 @@ public class DeleteStudentHandler : ICommandHandler<DeleteStudentCommand, bool>
     public DeleteStudentHandler(IAdminStudentService s) => _s = s;
     public Task<bool> Handle(DeleteStudentCommand r, CancellationToken ct) => _s.DeleteStudentAsync(r.Id);
 }
+
+// ── Excel Import Handlers ────────────────────────────────────────────────────
+
+public class ImportStudentsHandler : ICommandHandler<ImportStudentsCommand, StudentImportResultDto>
+{
+    private readonly IStudentImportService _s;
+    public ImportStudentsHandler(IStudentImportService s) => _s = s;
+    public Task<StudentImportResultDto> Handle(ImportStudentsCommand r, CancellationToken ct)
+        => _s.ImportFromExcelAsync(r.File, r.SchoolId);
+}
+
+public class DownloadStudentTemplateHandler : IQueryHandler<DownloadStudentTemplateQuery, byte[]>
+{
+    private readonly IStudentImportService _s;
+    public DownloadStudentTemplateHandler(IStudentImportService s) => _s = s;
+    public Task<byte[]> Handle(DownloadStudentTemplateQuery r, CancellationToken ct)
+        => Task.FromResult(_s.GenerateTemplate());
+}

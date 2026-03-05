@@ -30,9 +30,11 @@ using System.Threading.RateLimiting;
 var builder = WebApplication.CreateBuilder(args);
 
 // ─── Render PORT binding (Render injects PORT env var) ────────
-// Falls back to 8080 for local Docker or other platforms
-var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+// Only override URL when PORT is explicitly set (Render / Docker / prod).
+// Locally, launchSettings.json controls the port (http://localhost:5235).
+var renderPort = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrEmpty(renderPort))
+    builder.WebHost.UseUrls($"http://0.0.0.0:{renderPort}");
 
 // ─── 0. Configuration Validation ─────────────────────────────
 ValidateConfiguration(builder.Configuration, builder.Environment);
@@ -168,6 +170,7 @@ builder.Services.AddScoped<IAdminAuthService, AdminAuthService>();
 builder.Services.AddScoped<ISchoolService, SchoolService>();
 builder.Services.AddScoped<IClassService, ClassService>();
 builder.Services.AddScoped<IAdminStudentService, AdminStudentService>();
+builder.Services.AddScoped<IStudentImportService, StudentImportService>();
 builder.Services.AddScoped<IAdminTeacherService, AdminTeacherService>();
 builder.Services.AddScoped<TeacherAuthService>();
 builder.Services.AddScoped<ITeacherService, TeacherService>();

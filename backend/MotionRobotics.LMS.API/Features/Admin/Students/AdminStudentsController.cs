@@ -108,4 +108,57 @@ public class AdminStudentsController : ControllerBase
         var result = await _mediator.Send(new DeleteStudentCommand(id));
         return result ? Ok(new { message = "Student deleted successfully" }) : NotFound(new { message = "Student not found" });
     }
+
+    // ────────────────────────────────────────────────────────────────────────────
+    // EXCEL BULK IMPORT
+    // ────────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Upload an Excel file (.xlsx) to bulk-create students.
+    /// Valid rows are inserted; invalid rows are returned in the error list.
+    /// Default password for every imported student: Student@123
+    /// </summary>
+    [HttpPost("upload")]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(typeof(MotionRobotics.LMS.API.DTOs.Admin.StudentImportResultDto), 200)]
+    public async Task<IActionResult> UploadStudents([FromForm] IFormFile file)
+    {
+        // Resolve school from session (SchoolAdmin) or reject
+        var sessionSchoolId = HttpContext.Items["SessionSchoolId"] as int?;
+        var role = HttpContext.Items["SessionRole"] as string;
+
+        if (role == "SchoolAdmin" && !sessionSchoolId.HasValue)
+            return Forbid();
+
+        if (file is null || file.Length == 0)
+            return BadRequest(new { message = "Please attach an Excel file (.xlsx)." });
+
+        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (ext != ".xlsx")
+            return BadRequest(new { message = "Only .xlsx files are accepted. Download the template to get started." });
+
+        try
+        {
+            var result = await _mediator.Send(
+                new ImportStudentsCommand(file, sessionSchoolId!.Value));
+
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+    }
+
+    /// <summary>
+    /// Download a pre-formatted Excel template with headers and sample rows.
+    /// Share this with the school so they fill in the correct format.
+    /// </summary>
+    [HttpGet("template")]
+    public async Task<IActionResult> DownloadTemplate()
+    {
+        var bytes = await _mediator.Send(new DownloadStudentTemplateQuery());
+        return File(
+            bytes,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "students_import_template.xlsx");
+    }
 }

@@ -20,7 +20,11 @@ namespace MotionRobotics.LMS.API.Seed
             // ─── QUICK CHECK: skip if all 4 users already have valid PBKDF2 hashes ─
             // This prevents the nuke-then-recreate cycle on every server restart.
             // BCrypt hashes start with "$2a$" or "$2b$"; PBKDF2 v3 starts with "AQAAAA".
-            var earlyCheck = await Task.WhenAll(DemoEmails.Select(e => userManager.FindByEmailAsync(e)));
+            // NOTE: Run sequentially — EF Core DbContext does not allow parallel async operations.
+            var earlyCheck = new List<IdentityUser?>();
+            foreach (var email in DemoEmails)
+                earlyCheck.Add(await userManager.FindByEmailAsync(email));
+
             bool allValid = earlyCheck.All(u =>
                 u != null &&
                 u.PasswordHash != null &&
@@ -54,10 +58,10 @@ namespace MotionRobotics.LMS.API.Seed
             IdentityUser? adminUser = null, teacherUser = null, student1User = null, student2User = null;
             try
             {
-                adminUser   = await CreateFreshUser(userManager, "admin@demo.com",    "Admin@123",   "SchoolAdmin");
-                teacherUser = await CreateFreshUser(userManager, "teacher@demo.com",  "Teacher@123", "Teacher");
-                student1User= await CreateFreshUser(userManager, "student@demo.com",  "Student@123", "Student");
-                student2User= await CreateFreshUser(userManager, "student2@demo.com", "Student@123", "Student");
+                adminUser = await CreateFreshUser(userManager, "admin@demo.com", "Admin@123", "SchoolAdmin");
+                teacherUser = await CreateFreshUser(userManager, "teacher@demo.com", "Teacher@123", "Teacher");
+                student1User = await CreateFreshUser(userManager, "student@demo.com", "Student@123", "Student");
+                student2User = await CreateFreshUser(userManager, "student2@demo.com", "Student@123", "Student");
             }
             catch (Exception ex)
             {
@@ -255,11 +259,11 @@ namespace MotionRobotics.LMS.API.Seed
 
             var ne = string.Join(",", DemoEmails.Select(e => $"'{e.ToUpperInvariant()}'"));
             // subquery used in multiple places
-            var userIdSub   = $"SELECT \"Id\" FROM \"AspNetUsers\" WHERE \"NormalizedEmail\" IN ({ne})";
+            var userIdSub = $"SELECT \"Id\" FROM \"AspNetUsers\" WHERE \"NormalizedEmail\" IN ({ne})";
             var schoolIdSub = "SELECT \"Id\" FROM \"Schools\" WHERE \"SchoolCode\" = 'DEMO001'";
-            var classIdSub  = $"SELECT \"Id\" FROM \"Classes\" WHERE \"SchoolId\" IN ({schoolIdSub})";
-            var studentIdSub= $"SELECT \"Id\" FROM \"Students\" WHERE \"SchoolId\" IN ({schoolIdSub})";
-            var teacherIdSub= $"SELECT \"Id\" FROM \"Teachers\" WHERE \"SchoolId\" IN ({schoolIdSub})";
+            var classIdSub = $"SELECT \"Id\" FROM \"Classes\" WHERE \"SchoolId\" IN ({schoolIdSub})";
+            var studentIdSub = $"SELECT \"Id\" FROM \"Students\" WHERE \"SchoolId\" IN ({schoolIdSub})";
+            var teacherIdSub = $"SELECT \"Id\" FROM \"Teachers\" WHERE \"SchoolId\" IN ({schoolIdSub})";
 
             // Each DELETE is its own ExecuteSqlRawAsync call — required for Npgsql
             var statements = new[]
