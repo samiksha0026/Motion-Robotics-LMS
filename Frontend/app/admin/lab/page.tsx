@@ -74,8 +74,8 @@ export default function LabPage() {
 
   async function fetchSchoolsSummary() {
     try {
-      const res = await fetchWithAuth(`${API_BASE_URL}/api/admin/lab/schools`);
-      if (res.ok) setSchools(await res.json());
+      const data = await fetchWithAuth(`${API_BASE_URL}/api/admin/lab/schools`);
+      if (Array.isArray(data)) setSchools(data);
     } catch { /* ignore */ }
     setLoading(false);
   }
@@ -83,18 +83,13 @@ export default function LabPage() {
   async function fetchLabInfo(schoolId: number) {
     setLoading(true);
     try {
-      const res = await fetchWithAuth(`${API_BASE_URL}/api/admin/lab/${schoolId}`);
-      if (res.ok) {
-        const data: LabInfo = await res.json();
-        setLabInfo(data);
-        setEditForm({
-          labDescription: data.labDescription ?? "",
-          labArea: data.labArea ?? "",
-          labCapacity: data.labCapacity?.toString() ?? ""
-        });
-      } else {
-        setLabInfo(null);
-      }
+      const data = await fetchWithAuth(`${API_BASE_URL}/api/admin/lab/${schoolId}`) as LabInfo;
+      setLabInfo(data);
+      setEditForm({
+        labDescription: data.labDescription ?? "",
+        labArea: data.labArea ?? "",
+        labCapacity: data.labCapacity?.toString() ?? ""
+      });
     } catch { setLabInfo(null); }
     setLoading(false);
   }
@@ -108,25 +103,19 @@ export default function LabPage() {
     if (!selectedSchoolId) return;
     setSavingInfo(true);
     try {
-      const res = await fetchWithAuth(`${API_BASE_URL}/api/admin/lab/${selectedSchoolId}`, {
+      const updated = await fetchWithAuth(`${API_BASE_URL}/api/admin/lab/${selectedSchoolId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           labDescription: editForm.labDescription || null,
           labArea: editForm.labArea || null,
           labCapacity: editForm.labCapacity ? parseInt(editForm.labCapacity) : null
         })
-      });
-      if (res.ok) {
-        const updated: LabInfo = await res.json();
-        setLabInfo(updated);
-        setEditMode(false);
-        flash("Lab information saved!");
-        if (superAdmin) fetchSchoolsSummary();
-      } else {
-        flash("Failed to save lab information.", true);
-      }
-    } catch { flash("Network error.", true); }
+      }) as LabInfo;
+      setLabInfo(updated);
+      setEditMode(false);
+      flash("Lab information saved!");
+      if (superAdmin) fetchSchoolsSummary();
+    } catch { flash("Failed to save lab information.", true); }
     setSavingInfo(false);
   }
 
@@ -140,8 +129,17 @@ export default function LabPage() {
     if (uploadCaption.trim()) formData.append("caption", uploadCaption.trim());
 
     try {
-      const res = await fetchWithAuth(`${API_BASE_URL}/api/admin/lab/${selectedSchoolId}/photos`, {
+      // Use raw fetch for file upload — fetchWithAuth forces Content-Type: application/json
+      // which breaks multipart/form-data boundary
+      const token = typeof window !== "undefined" ? sessionStorage.getItem("jwt") : null;
+      const sessionId = typeof window !== "undefined" ? sessionStorage.getItem("sessionId") : null;
+      const res = await fetch(`${API_BASE_URL}/api/admin/lab/${selectedSchoolId}/photos`, {
         method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...(sessionId ? { "X-Session-Id": sessionId } : {})
+        },
+        credentials: "include",
         body: formData
       });
       if (res.ok) {
@@ -163,15 +161,11 @@ export default function LabPage() {
     if (!selectedSchoolId) return;
     setDeletingId(photoId);
     try {
-      const res = await fetchWithAuth(`${API_BASE_URL}/api/admin/lab/${selectedSchoolId}/photos/${photoId}`, { method: "DELETE" });
-      if (res.ok) {
-        setLabInfo(prev => prev ? { ...prev, photos: prev.photos.filter(p => p.id !== photoId) } : prev);
-        flash("Photo deleted.");
-        if (superAdmin) fetchSchoolsSummary();
-      } else {
-        flash("Failed to delete photo.", true);
-      }
-    } catch { flash("Network error.", true); }
+      await fetchWithAuth(`${API_BASE_URL}/api/admin/lab/${selectedSchoolId}/photos/${photoId}`, { method: "DELETE" });
+      setLabInfo(prev => prev ? { ...prev, photos: prev.photos.filter(p => p.id !== photoId) } : prev);
+      flash("Photo deleted.");
+      if (superAdmin) fetchSchoolsSummary();
+    } catch { flash("Failed to delete photo.", true); }
     setDeletingId(null);
   }
 
