@@ -179,10 +179,10 @@ export default function LabPage() {
   if (superAdmin && selectedSchoolId === null) {
     return (
       <div className="p-6 max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
           <Camera className="w-7 h-7 text-indigo-600" /> Lab Gallery
         </h1>
-        <p className="text-gray-500 dark:text-gray-400 mb-6">Select a school to view or manage its lab setup.</p>
+        <p className="text-gray-500 mb-6">Select a school to view or manage its lab setup.</p>
 
         {loading ? (
           <div className="flex items-center gap-2 text-gray-500"><Loader2 className="w-5 h-5 animate-spin" /> Loading schools…</div>
@@ -190,10 +190,10 @@ export default function LabPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {schools.map(s => (
               <button key={s.schoolId} onClick={() => setSelectedSchoolId(s.schoolId)}
-                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-left hover:border-indigo-400 hover:shadow-md transition-all group">
+                className="bg-white border border-gray-200 rounded-xl p-4 text-left hover:border-indigo-400 hover:shadow-md transition-all group">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="font-semibold text-gray-900 dark:text-white group-hover:text-indigo-600">{s.schoolName}</p>
+                    <p className="font-semibold text-gray-900 group-hover:text-indigo-600">{s.schoolName}</p>
                     <p className="text-xs text-gray-500 mt-0.5">{s.schoolCode}</p>
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-indigo-500 mt-0.5" />
@@ -225,12 +225,12 @@ export default function LabPage() {
       <div className="flex items-center gap-3 mb-6">
         {superAdmin && (
           <button onClick={() => { setSelectedSchoolId(null); setLabInfo(null); }}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-gray-800 transition-colors">
+            className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-800 transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
         )}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <Camera className="w-7 h-7 text-indigo-600" />
             {labInfo?.schoolName ?? "Lab Gallery"}
           </h1>
@@ -257,9 +257,9 @@ export default function LabPage() {
       ) : (
         <div className="space-y-6">
           {/* Lab Info Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-gray-900 dark:text-white text-lg">Lab Information</h2>
+              <h2 className="font-semibold text-gray-900 text-lg">Lab Information</h2>
               {!superAdmin && !editMode && (
                 <button onClick={() => setEditMode(true)}
                   className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 font-medium">
@@ -271,26 +271,26 @@ export default function LabPage() {
             {editMode && !superAdmin ? (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Lab Description</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Lab Description</label>
                   <textarea rows={3} value={editForm.labDescription}
                     onChange={e => setEditForm(p => ({ ...p, labDescription: e.target.value }))}
                     placeholder="Describe the lab setup, equipment, layout…"
-                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none" />
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Lab Area</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Lab Area</label>
                     <input type="text" value={editForm.labArea}
                       onChange={e => setEditForm(p => ({ ...p, labArea: e.target.value }))}
                       placeholder="e.g. 1200 sq ft"
-                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Workstation Capacity</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Workstation Capacity</label>
                     <input type="number" min={0} value={editForm.labCapacity}
                       onChange={e => setEditForm(p => ({ ...p, labCapacity: e.target.value }))}
                       placeholder="e.g. 20"
-                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
                   </div>
                 </div>
                 <div className="flex gap-2 pt-1">
@@ -300,7 +300,7 @@ export default function LabPage() {
                     Save
                   </button>
                   <button onClick={() => setEditMode(false)}
-                    className="flex items-center gap-1.5 border border-gray-300 text-gray-700 dark:text-gray-300 text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    className="flex items-center gap-1.5 border border-gray-300 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">
                     <X className="w-4 h-4" /> Cancel
                   </button>
                 </div>
@@ -309,7 +309,7 @@ export default function LabPage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="sm:col-span-3">
                   <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Description</p>
-                  <p className="text-gray-700 dark:text-gray-300 text-sm">
+                  <p className="text-gray-700 text-sm">
                     {labInfo?.labDescription ?? <span className="italic text-gray-400">Not set yet</span>}
                   </p>
                 </div>
@@ -317,7 +317,7 @@ export default function LabPage() {
                   <p className="text-xs text-gray-500 uppercase tracking-wide mb-1 flex items-center gap-1">
                     <Ruler className="w-3.5 h-3.5" /> Area
                   </p>
-                  <p className="font-semibold text-gray-900 dark:text-white">
+                  <p className="font-semibold text-gray-900">
                     {labInfo?.labArea ?? <span className="text-gray-400 font-normal italic text-sm">Not set</span>}
                   </p>
                 </div>
@@ -325,7 +325,7 @@ export default function LabPage() {
                   <p className="text-xs text-gray-500 uppercase tracking-wide mb-1 flex items-center gap-1">
                     <Users className="w-3.5 h-3.5" /> Workstations
                   </p>
-                  <p className="font-semibold text-gray-900 dark:text-white">
+                  <p className="font-semibold text-gray-900">
                     {labInfo?.labCapacity != null
                       ? `${labInfo.labCapacity} stations`
                       : <span className="text-gray-400 font-normal italic text-sm">Not set</span>}
@@ -335,7 +335,7 @@ export default function LabPage() {
                   <p className="text-xs text-gray-500 uppercase tracking-wide mb-1 flex items-center gap-1">
                     <Camera className="w-3.5 h-3.5" /> Photos
                   </p>
-                  <p className="font-semibold text-gray-900 dark:text-white">{labInfo?.photos.length ?? 0}</p>
+                  <p className="font-semibold text-gray-900">{labInfo?.photos.length ?? 0}</p>
                 </div>
               </div>
             )}
@@ -343,15 +343,15 @@ export default function LabPage() {
 
           {/* Upload Panel — SchoolAdmin only */}
           {!superAdmin && (
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
-              <h2 className="font-semibold text-gray-900 dark:text-white text-lg mb-4 flex items-center gap-2">
+            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+              <h2 className="font-semibold text-gray-900 text-lg mb-4 flex items-center gap-2">
                 <Upload className="w-5 h-5 text-indigo-500" /> Upload Photo
               </h2>
               <div className="flex flex-col sm:flex-row gap-3">
                 <input type="text" value={uploadCaption}
                   onChange={e => setUploadCaption(e.target.value)}
                   placeholder="Optional caption (e.g. Robot assembly area)"
-                  className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
                 <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
                   className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-5 py-2 rounded-lg disabled:opacity-50 transition-colors whitespace-nowrap">
                   {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
@@ -365,8 +365,8 @@ export default function LabPage() {
           )}
 
           {/* Photo Gallery */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
-            <h2 className="font-semibold text-gray-900 dark:text-white text-lg mb-4 flex items-center gap-2">
+          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <h2 className="font-semibold text-gray-900 text-lg mb-4 flex items-center gap-2">
               <Building2 className="w-5 h-5 text-indigo-500" /> Lab Photos
               <span className="ml-auto text-sm font-normal text-gray-500">{labInfo?.photos.length ?? 0} photo{(labInfo?.photos.length ?? 0) !== 1 ? "s" : ""}</span>
             </h2>
@@ -380,7 +380,7 @@ export default function LabPage() {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {labInfo.photos.map(photo => (
-                  <div key={photo.id} className="group relative rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700 aspect-square shadow-sm">
+                  <div key={photo.id} className="group relative rounded-xl overflow-hidden bg-gray-100 aspect-square shadow-sm">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={`${API_BASE_URL}${photo.url}`} alt={photo.caption ?? "Lab photo"}
                       className="w-full h-full object-cover" loading="lazy" />

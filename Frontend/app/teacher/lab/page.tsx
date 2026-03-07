@@ -57,16 +57,16 @@ export default function TeacherLabPage() {
   const nextPhoto = () => setLightboxIndex(i => (i != null && labInfo && i < labInfo.photos.length - 1 ? i + 1 : i));
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50">
       {/* Top bar */}
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
-          <button onClick={() => router.back()} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition-colors">
+          <button onClick={() => router.back()} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-2">
             <Camera className="w-5 h-5 text-blue-600" />
-            <h1 className="font-semibold text-gray-900 dark:text-white">Lab Gallery</h1>
+            <h1 className="font-semibold text-gray-900">Lab Gallery</h1>
           </div>
         </div>
       </header>
@@ -88,7 +88,7 @@ export default function TeacherLabPage() {
         ) : (
           <>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{labInfo.schoolName}</h2>
+              <h2 className="text-2xl font-bold text-gray-900">{labInfo.schoolName}</h2>
               <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
                 <Building2 className="w-4 h-4" /> Robotics Lab
               </p>
@@ -97,30 +97,30 @@ export default function TeacherLabPage() {
             {(labInfo.labDescription || labInfo.labArea || labInfo.labCapacity != null) && (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {labInfo.labDescription && (
-                  <div className="sm:col-span-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                  <div className="sm:col-span-3 bg-white rounded-xl border border-gray-200 p-4">
                     <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">About the Lab</p>
-                    <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">{labInfo.labDescription}</p>
+                    <p className="text-gray-700 text-sm leading-relaxed">{labInfo.labDescription}</p>
                   </div>
                 )}
                 {labInfo.labArea && (
-                  <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center gap-3">
-                    <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                  <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
+                    <div className="p-2 bg-blue-50 rounded-lg">
                       <Ruler className="w-5 h-5 text-blue-600" />
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Lab Area</p>
-                      <p className="font-semibold text-gray-900 dark:text-white">{labInfo.labArea}</p>
+                      <p className="font-semibold text-gray-900">{labInfo.labArea}</p>
                     </div>
                   </div>
                 )}
                 {labInfo.labCapacity != null && (
-                  <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center gap-3">
-                    <div className="p-2 bg-green-50 dark:bg-green-900/30 rounded-lg">
+                  <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
+                    <div className="p-2 bg-green-50 rounded-lg">
                       <Users className="w-5 h-5 text-green-600" />
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Workstations</p>
-                      <p className="font-semibold text-gray-900 dark:text-white">{labInfo.labCapacity} stations</p>
+                      <p className="font-semibold text-gray-900">{labInfo.labCapacity} stations</p>
                     </div>
                   </div>
                 )}
@@ -128,13 +128,13 @@ export default function TeacherLabPage() {
             )}
 
             <div>
-              <h3 className="font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+              <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
                 <Camera className="w-5 h-5 text-blue-500" /> Photos
                 <span className="text-sm font-normal text-gray-400 ml-1">({labInfo.photos.length})</span>
               </h3>
 
               {labInfo.photos.length === 0 ? (
-                <div className="text-center py-14 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-400">
+                <div className="text-center py-14 bg-white rounded-xl border border-gray-200 text-gray-400">
                   <ImageOff className="w-10 h-10 mx-auto mb-2 opacity-40" />
                   <p>Photos coming soon</p>
                 </div>
@@ -142,7 +142,7 @@ export default function TeacherLabPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                   {labInfo.photos.map((photo, idx) => (
                     <button key={photo.id} onClick={() => setLightboxIndex(idx)}
-                      className="relative aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700 hover:ring-2 hover:ring-blue-400 transition-all group">
+                      className="relative aspect-square rounded-xl overflow-hidden bg-gray-100 hover:ring-2 hover:ring-blue-400 transition-all group">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={`${API_BASE_URL}${photo.url}`} alt={photo.caption ?? "Lab photo"}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
