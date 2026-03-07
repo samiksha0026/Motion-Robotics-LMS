@@ -19,7 +19,8 @@ import {
   BookOpen,
   Award,
   Eye,
-  X
+  X,
+  Camera
 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api-config";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -451,6 +452,19 @@ export default function TeacherDashboard() {
                   <div>
                     <p className="font-medium text-gray-900">View Reports</p>
                     <p className="text-xs text-gray-500">Student progress reports</p>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => router.push("/teacher/lab")}
+                  className="w-full flex items-center gap-3 p-4 bg-purple-50 hover:bg-purple-100 rounded-xl text-left transition-colors"
+                >
+                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <Camera className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">Lab Gallery</p>
+                    <p className="text-xs text-gray-500">View lab setup & photos</p>
                   </div>
                 </button>
               </div>

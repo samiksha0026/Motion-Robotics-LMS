@@ -41,6 +41,7 @@ namespace MotionRobotics.LMS.API.Data
         // Auth
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<UserSession> UserSessions { get; set; }
+        public DbSet<LabPhoto> LabPhotos { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -349,6 +350,17 @@ namespace MotionRobotics.LMS.API.Data
             modelBuilder.Entity<ExamResult>()
                 .Property(er => er.Percentage)
                 .HasPrecision(5, 2);
+
+            // ============ LAB PHOTOS ============
+
+            modelBuilder.Entity<LabPhoto>()
+                .HasOne(lp => lp.School)
+                .WithMany(s => s.LabPhotos)
+                .HasForeignKey(lp => lp.SchoolId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<LabPhoto>()
+                .HasIndex(lp => new { lp.SchoolId, lp.DisplayOrder });
         }
     }
 }

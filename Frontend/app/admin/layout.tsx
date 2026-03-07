@@ -20,7 +20,8 @@ import {
   Menu,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Camera
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
@@ -91,6 +92,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin/teachers', label: 'Teachers', icon: GraduationCap, roles: ['SuperAdmin', 'SchoolAdmin'] },
     { href: '/admin/students', label: 'Students', icon: Users, roles: ['SuperAdmin', 'SchoolAdmin'] },
     { href: '/admin/courses', label: 'Courses', icon: FileText, roles: ['SuperAdmin', 'SchoolAdmin'] },
+    { href: '/admin/lab', label: 'Lab', icon: Camera, roles: ['SuperAdmin', 'SchoolAdmin'] },
     { href: '/admin/exams', label: 'Exams', icon: ClipboardList, roles: ['SuperAdmin', 'SchoolAdmin'] },
     { href: '/admin/certificates', label: 'Certificates', icon: Award, roles: ['SuperAdmin', 'SchoolAdmin'] },
     { href: '/admin/reports', label: 'Reports', icon: BarChart3, roles: ['SuperAdmin', 'SchoolAdmin'] },

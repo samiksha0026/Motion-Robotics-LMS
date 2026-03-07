@@ -8,7 +8,7 @@ import {
   User, LogOut, Menu, X, Home, CheckCircle, Clock,
   Play, Download, ChevronRight, TrendingUp, Target,
   Video, Book, ClipboardCheck, Trophy, Lock, Loader2,
-  AlertCircle, RefreshCw
+  AlertCircle, RefreshCw, Camera
 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api-config";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -634,6 +634,14 @@ export default function StudentDashboard() {
             >
               <Trophy size={20} />
               <span className="font-medium">Certificate</span>
+            </button>
+
+            <button
+              onClick={() => router.push('/student/lab')}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-gray-700 hover:bg-gray-100"
+            >
+              <Camera size={20} />
+              <span className="font-medium">Our Lab</span>
             </button>
 
             <div className="pt-4 mt-4 border-t border-gray-200">

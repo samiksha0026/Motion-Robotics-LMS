@@ -171,6 +171,7 @@ builder.Services.AddScoped<ISchoolService, SchoolService>();
 builder.Services.AddScoped<IClassService, ClassService>();
 builder.Services.AddScoped<IAdminStudentService, AdminStudentService>();
 builder.Services.AddScoped<IStudentImportService, StudentImportService>();
+builder.Services.AddScoped<ILabService, LabService>();
 builder.Services.AddScoped<IAdminTeacherService, AdminTeacherService>();
 builder.Services.AddScoped<TeacherAuthService>();
 builder.Services.AddScoped<ITeacherService, TeacherService>();

@@ -23,6 +23,11 @@ namespace MotionRobotics.LMS.API.Models
         // School Admin credentials (the person who manages this school's LMS)
         public string? SchoolAdminUserId { get; set; }  // Reference to AspNetUsers (SchoolAdmin role)
 
+        // Lab info
+        public string? LabDescription { get; set; }
+        public string? LabArea { get; set; }        // e.g. "1200 sq ft"
+        public int? LabCapacity { get; set; }       // number of workstations
+
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
@@ -33,5 +38,6 @@ namespace MotionRobotics.LMS.API.Models
         public ICollection<Student> Students { get; set; } = new List<Student>();
         public ICollection<Teacher> Teachers { get; set; } = new List<Teacher>();
         public ICollection<SchoolLevelMapping> SchoolLevelMappings { get; set; } = new List<SchoolLevelMapping>();
+        public ICollection<LabPhoto> LabPhotos { get; set; } = new List<LabPhoto>();
     }
 }
