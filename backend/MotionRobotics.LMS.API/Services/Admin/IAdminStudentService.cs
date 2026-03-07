@@ -10,5 +10,6 @@ namespace MotionRobotics.LMS.API.Services.Admin
         Task<List<StudentResponseDto>> GetStudentsByClassAsync(int classId);
         Task<List<StudentResponseDto>> GetAllStudentsAsync();
         Task<bool> DeleteStudentAsync(int id);
+        Task<StudentResponseDto> UpdateStudentAsync(int id, StudentUpdateDto dto);
     }
 }

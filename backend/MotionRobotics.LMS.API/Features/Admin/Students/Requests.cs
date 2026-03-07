@@ -10,6 +10,7 @@ public record GetStudentsBySchoolQuery(int SchoolId) : IQuery<List<StudentRespon
 public record GetStudentsByClassQuery(int ClassId) : IQuery<List<StudentResponseDto>>;
 public record CreateStudentCommand(StudentCreateDto Data) : ICommand<StudentResponseDto>;
 public record DeleteStudentCommand(int Id) : ICommand<bool>;
+public record UpdateStudentCommand(int Id, StudentUpdateDto Data) : ICommand<StudentResponseDto>;
 
 // ── Excel Import ─────────────────────────────────────────────────────────────
 /// <summary>Bulk-create students from an uploaded Excel file.</summary>

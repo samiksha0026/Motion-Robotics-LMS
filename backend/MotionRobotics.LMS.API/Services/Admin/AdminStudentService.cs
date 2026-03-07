@@ -167,6 +167,35 @@ namespace MotionRobotics.LMS.API.Services.Admin
             return true;
         }
 
+        public async Task<StudentResponseDto> UpdateStudentAsync(int id, StudentUpdateDto dto)
+        {
+            var student = await _context.Students
+                .Include(s => s.School)
+                .Include(s => s.Class)
+                .FirstOrDefaultAsync(s => s.Id == id);
+
+            if (student == null)
+                throw new KeyNotFoundException("Student not found");
+
+            // Validate class exists and belongs to school
+            var @class = await _context.Classes.FindAsync(dto.ClassId);
+            if (@class == null || @class.SchoolId != dto.SchoolId)
+                throw new KeyNotFoundException("Class not found in this school");
+
+            student.FullName = dto.FullName;
+            student.RollNo = dto.RollNo;
+            student.ClassId = dto.ClassId;
+            student.ParentName = dto.ParentName;
+            student.ParentPhone = dto.ParentPhone;
+
+            await _context.SaveChangesAsync();
+
+            await _context.Entry(student).Reference(s => s.School).LoadAsync();
+            await _context.Entry(student).Reference(s => s.Class).LoadAsync();
+
+            return await MapToDtoAsync(student, student.Class, student.School);
+        }
+
         private async Task<StudentResponseDto> MapToDtoAsync(Student student, Class? @class, School? school)
         {
             // Get assigned robotics level from school level mapping

@@ -47,6 +47,13 @@ export default function AdminTeachers() {
   const [schoolId, setSchoolId] = useState<number | ''>('');
   const [selectedClassIds, setSelectedClassIds] = useState<number[]>([]);
 
+  // Edit state
+  const [editingTeacher, setEditingTeacher] = useState<TeacherData | null>(null);
+  const [editFullName, setEditFullName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editSchoolId, setEditSchoolId] = useState<number | ''>('');
+  const [saving, setSaving] = useState(false);
+
   // Initialize role context
   useEffect(() => {
     const role = getRole();
@@ -179,6 +186,43 @@ export default function AdminTeachers() {
     }
   }
 
+  function openEdit(teacher: TeacherData) {
+    setEditingTeacher(teacher);
+    setEditFullName(teacher.fullName);
+    setEditPhone(teacher.phoneNumber);
+    setEditSchoolId(teacher.schoolId);
+    setError('');
+  }
+
+  async function handleEditSave() {
+    if (!editingTeacher) return;
+    if (!editFullName.trim() || !editPhone.trim()) {
+      setError('Name and phone number are required');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    try {
+      await fetchWithAuth(`/api/admin/teachers/${editingTeacher.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          email: editingTeacher.email,
+          fullName: editFullName,
+          password: 'Placeholder@1',
+          phoneNumber: editPhone,
+          schoolId: Number(editSchoolId) || editingTeacher.schoolId,
+          classIds: editingTeacher.classes?.map(c => c.id) ?? []
+        })
+      });
+      setEditingTeacher(null);
+      loadTeachers();
+    } catch (err: any) {
+      setError(err.message || 'Could not update teacher');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const filteredTeachers = teachers.filter((teacher) =>
     teacher.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     teacher.email?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -198,19 +242,17 @@ export default function AdminTeachers() {
               <p className="text-sm text-gray-600">Manage instructor accounts and assignments</p>
             </div>
           </div>
-          {userRole === 'SchoolAdmin' && (
-            <button
-              onClick={() => setShowForm(!showForm)}
-              className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all"
-            >
-              <Plus className="w-4 h-4" />
-              Add Teacher
-            </button>
-          )}
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            Add Teacher
+          </button>
         </div>
 
         {/* Add Teacher Form */}
-        {userRole === 'SchoolAdmin' && showForm && (
+        {showForm && (
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-100">
             <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <Plus className="w-4 h-4" />
@@ -465,28 +507,98 @@ export default function AdminTeachers() {
                   </div>
                 </div>
 
-                {userRole === 'SchoolAdmin' && (
-                  <div className="flex items-center gap-2">
-                    <button
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      title="Edit Teacher"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(t.id)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Delete Teacher"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => openEdit(t)}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    title="Edit Teacher"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(t.id)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Delete Teacher"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Edit Teacher Modal */}
+      {editingTeacher && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+              <Edit className="w-5 h-5 text-blue-600" />
+              Edit Teacher
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">{editingTeacher.email}</p>
+
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                <input
+                  value={editFullName}
+                  onChange={(e) => setEditFullName(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
+                <input
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              {userRole === 'SuperAdmin' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">School</label>
+                  <select
+                    value={editSchoolId}
+                    onChange={(e) => setEditSchoolId(e.target.value ? Number(e.target.value) : '')}
+                    className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select a school</option>
+                    {schools.map((school) => (
+                      <option key={school.id} value={school.id}>{school.schoolName}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleEditSave}
+                disabled={saving}
+                className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-all"
+              >
+                {saving && <Loader className="w-4 h-4 animate-spin" />}
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
+              <button
+                onClick={() => { setEditingTeacher(null); setError(''); }}
+                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

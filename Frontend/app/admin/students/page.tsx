@@ -88,6 +88,15 @@ export default function AdminStudents() {
   const [classId, setClassId] = useState<number | ''>('');
   const [programName, setProgramName] = useState('');
 
+  // Edit state
+  const [editingStudent, setEditingStudent] = useState<StudentData | null>(null);
+  const [editFullName, setEditFullName] = useState('');
+  const [editRollNo, setEditRollNo] = useState('');
+  const [editClassId, setEditClassId] = useState<number | ''>('');
+  const [editParentName, setEditParentName] = useState('');
+  const [editParentPhone, setEditParentPhone] = useState('');
+  const [saving, setSaving] = useState(false);
+
   // Initialize role context
   useEffect(() => {
     const role = getRole();
@@ -333,6 +342,45 @@ export default function AdminStudents() {
     }
   }
 
+  function openEdit(student: StudentData) {
+    setEditingStudent(student);
+    setEditFullName(student.fullName);
+    setEditRollNo(student.rollNo);
+    setEditClassId(student.classId);
+    setEditParentName((student as any).parentName ?? '');
+    setEditParentPhone((student as any).parentPhone ?? '');
+    setError('');
+  }
+
+  async function handleEditSave() {
+    if (!editingStudent) return;
+    if (!editFullName.trim() || !editRollNo.trim() || !editClassId) {
+      setError('Name, roll number and class are required');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    try {
+      await fetchWithAuth(`/api/admin/students/${editingStudent.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          fullName: editFullName,
+          rollNo: editRollNo,
+          classId: Number(editClassId),
+          schoolId: editingStudent.schoolId,
+          parentName: editParentName || null,
+          parentPhone: editParentPhone || null
+        })
+      });
+      setEditingStudent(null);
+      loadStudents();
+    } catch (err: any) {
+      setError(err.message || 'Could not update student');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const filteredStudents = students.filter((student) =>
     student.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     student.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -359,8 +407,8 @@ export default function AdminStudents() {
               <p className="text-sm text-gray-600">Manage student accounts and enrollments</p>
             </div>
           </div>
-          {userRole === 'SchoolAdmin' && (
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            {userRole === 'SchoolAdmin' && (
               <button
                 onClick={() => { setShowImportPanel(!showImportPanel); setShowForm(false); }}
                 className="flex items-center gap-2 border border-blue-600 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-50 transition-all"
@@ -368,15 +416,15 @@ export default function AdminStudents() {
                 <FileSpreadsheet className="w-4 h-4" />
                 Import Excel
               </button>
-              <button
-                onClick={() => { setShowForm(!showForm); setShowImportPanel(false); }}
-                className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all"
-              >
-                <Plus className="w-4 h-4" />
-                Add Student
-              </button>
-            </div>
-          )}
+            )}
+            <button
+              onClick={() => { setShowForm(!showForm); setShowImportPanel(false); }}
+              className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              Add Student
+            </button>
+          </div>
         </div>
 
         {/* Import Excel Panel */}
@@ -571,7 +619,7 @@ export default function AdminStudents() {
         )}
 
         {/* Add Student Form */}
-        {userRole === 'SchoolAdmin' && showForm && (
+        {showForm && (
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-100">
             <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <Plus className="w-4 h-4" />
@@ -624,6 +672,21 @@ export default function AdminStudents() {
                   className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+              {userRole !== 'SchoolAdmin' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">School *</label>
+                  <select
+                    value={schoolId}
+                    onChange={(e) => setSchoolId(e.target.value ? Number(e.target.value) : '')}
+                    className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select a school</option>
+                    {schools.map((school) => (
+                      <option key={school.id} value={school.id}>{school.schoolName}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Class *</label>
                 <select
@@ -814,28 +877,116 @@ export default function AdminStudents() {
                   </div>
                 </div>
 
-                {userRole === 'SchoolAdmin' && (
-                  <div className="flex items-center gap-2">
-                    <button
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      title="Edit Student"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(s.id)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Delete Student"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => openEdit(s)}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    title="Edit Student"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(s.id)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Delete Student"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Edit Student Modal */}
+      {editingStudent && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg mx-4">
+            <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+              <Edit className="w-5 h-5 text-blue-600" />
+              Edit Student
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">{editingStudent.email} &bull; {editingStudent.schoolName}</p>
+
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                <input
+                  value={editFullName}
+                  onChange={(e) => setEditFullName(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Roll Number *</label>
+                <input
+                  value={editRollNo}
+                  onChange={(e) => setEditRollNo(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Class *</label>
+                <select
+                  value={editClassId}
+                  onChange={(e) => setEditClassId(e.target.value ? Number(e.target.value) : '')}
+                  className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select a class</option>
+                  {classes
+                    .filter(c => c.schoolId === editingStudent.schoolId)
+                    .map((cls) => (
+                      <option key={cls.id} value={cls.id}>{cls.className || cls.name}</option>
+                    ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Parent Name</label>
+                <input
+                  value={editParentName}
+                  onChange={(e) => setEditParentName(e.target.value)}
+                  placeholder="Optional"
+                  className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Parent Phone</label>
+                <input
+                  value={editParentPhone}
+                  onChange={(e) => setEditParentPhone(e.target.value)}
+                  placeholder="Optional"
+                  className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleEditSave}
+                disabled={saving}
+                className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-all"
+              >
+                {saving && <Loader className="w-4 h-4 animate-spin" />}
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
+              <button
+                onClick={() => { setEditingStudent(null); setError(''); }}
+                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -93,6 +93,28 @@ public class AdminStudentsController : ControllerBase
         catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
     }
 
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> UpdateStudent(int id, [FromBody] StudentUpdateDto dto)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        var student = await _mediator.Send(new GetStudentByIdQuery(id));
+        if (student == null) return NotFound(new { message = "Student not found" });
+
+        var sessionSchoolId = HttpContext.Items["SessionSchoolId"] as int?;
+        var role = HttpContext.Items["SessionRole"] as string;
+        if (role == "SchoolAdmin" && sessionSchoolId.HasValue && student.SchoolId != sessionSchoolId.Value)
+            return Forbid();
+
+        try
+        {
+            var result = await _mediator.Send(new UpdateStudentCommand(id, dto));
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+    }
+
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> DeleteStudent(int id)
     {
